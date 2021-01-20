@@ -1,6 +1,6 @@
 import sys
-from utils import LandDataset, Config, evaluate_model
-from tools import train_main, test_main
+from code.utils import LandDataset, Config, evaluate_model
+from code.tools import train_main, test_main
 
 # from .utils import LandDataset, Config, evaluate_model
 # from .tools import train_main, test_main
@@ -28,3 +28,4 @@ if __name__ == '__main__':
     #                                           cfg.num_classes, cfg.train_cfg.num_workers)
 
     print('end')
+    print("this is a test")
