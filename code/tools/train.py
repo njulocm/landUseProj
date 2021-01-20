@@ -103,7 +103,7 @@ def train_main(cfg):
             best_miou = val_miou
             torch.save(model, model_cfg.check_point_file)
 
-        if epoch % 10 == 0: # 每10轮保存一次
+        if epoch % 10 == 9: # 每10轮保存一次
             model_file = model_cfg.check_point_file.split('.')[0] + '-' + epoch + '.pth'
             torch.save(model, model_file)
 
