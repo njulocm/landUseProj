@@ -1,5 +1,6 @@
 from .FCN import VGGNet, FCN
 from .Unet import U_Net
+import torch
 
 
 def build_model(model_cfg):
@@ -16,5 +17,9 @@ def build_model(model_cfg):
     elif model_cfg.type == 'Unet':
         u_net = U_Net(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return u_net
+    elif model_cfg.type == 'CheckPoint': # 加载已有模型
+        model = torch.load(model_cfg.check_point_file)
+        return model
+
     else:
         raise Exception('没有该模型！')
