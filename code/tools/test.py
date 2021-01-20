@@ -42,7 +42,7 @@ def predict(model, dataset, out_dir, device, batch_size=128):
     :return: None
     '''
 
-    if ~os.path.exists(out_dir):
+    if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
     # 获取数据集中样本的序号
