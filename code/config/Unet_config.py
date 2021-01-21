@@ -30,8 +30,8 @@ train_cfg = dict(
 )
 
 test_cfg = dict(
-    dataset='val_dataset',
+    dataset='test_dataset',
     batch_size=train_cfg['batch_size'],
-    check_point_file=root_dir + '/code/checkpoint/Unet/Unet_model.pth',
-    out_dir=root_dir + '/prediction_result/Unet_val_out'
+    check_point_file=root_dir + '/code/checkpoint/Unet/Unet_model-epoch99.pth',
+    out_dir=root_dir + '/prediction_result/Unet_test_out-0121'
 )
