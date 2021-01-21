@@ -1,5 +1,5 @@
 num_classes = 10
-device = 'cuda:1'
+device = 'cuda:0'
 root_dir = '/home/cm/landUseProj'
 
 dataset_cfg = dict(
@@ -32,6 +32,6 @@ train_cfg = dict(
 test_cfg = dict(
     dataset='test_dataset',
     batch_size=train_cfg['batch_size'],
-    check_point_file=root_dir + '/code/checkpoint/Unet/Unet_model.pth',
-    out_dir=root_dir + '/prediction_result/Unet_test_out'
+    check_point_file=root_dir + '/code/checkpoint/Unet/Unet_model-epoch99.pth',
+    out_dir=root_dir + '/prediction_result/Unet_test_out-0121'
 )
