@@ -1,6 +1,7 @@
 from utils import evaluate_model, LandDataset
 
 import torch
+import torch.nn as nn
 from torch.utils.data import random_split, DataLoader
 
 import cv2
@@ -28,8 +29,15 @@ def test_main(cfg):
     # 加载模型
     model = torch.load(test_cfg.check_point_file).to(device)
 
-    # 预测
-    predict(model=model, dataset=dataset, out_dir=test_cfg.out_dir, device=device, batch_size=test_cfg.batch_size)
+    # 预测结果
+    if test_cfg.is_predict:
+        predict(model=model, dataset=dataset, out_dir=test_cfg.out_dir, device=device, batch_size=test_cfg.batch_size)
+
+    # 评估模型
+    if test_cfg.is_evaluate:
+        loss_func = nn.CrossEntropyLoss().to(device)
+        evaluate_model(model, dataset, loss_func, device, cfg.num_classes,
+                       num_workers=test_cfg.num_workers, batch_size=test_cfg.batch_size)
 
 
 def predict(model, dataset, out_dir, device, batch_size=128):

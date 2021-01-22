@@ -1,16 +1,8 @@
-from model import U_Net
+from model import U_Net, AttU_Net, NestedUNet
 import torch
 
-model = U_Net(4, 10)
+model = NestedUNet(4, 10)
 X = torch.ones((2, 4, 256, 256))
 Y = model(X)
 
 a = 0
-
-print('end')
-print('end')
-print('yujian')
-print('cm')
-print("fuck python")
-print("zhangchi")
-

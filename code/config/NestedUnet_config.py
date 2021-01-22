@@ -1,5 +1,5 @@
 num_classes = 10
-device = 'cuda:1'
+device = 'cuda:2'
 root_dir = '/home/cm/landUseProj'
 
 dataset_cfg = dict(
@@ -17,10 +17,15 @@ model_cfg = dict(
     # num_classes=num_classes,
     # check_point_file=root_dir + '/code/checkpoint/Unet/Unet_model.pth'
 
-    type='AttUnet',
+    # type='AttUnet',
+    # input_channel=4,
+    # num_classes=num_classes,
+    # check_point_file=root_dir + '/code/checkpoint/AttUnet/AttUnet_model.pth'
+
+    type='NestedUnet',
     input_channel=4,
     num_classes=num_classes,
-    check_point_file=root_dir + '/code/checkpoint/AttUnet/AttUnet_model.pth'
+    check_point_file=root_dir + '/code/checkpoint/NestedUnet/NestedUnet_model.pth'
 
     # 使用已训练的模型
     # type='CheckPoint',
@@ -29,7 +34,7 @@ model_cfg = dict(
 
 train_cfg = dict(
     num_workers=4,
-    batch_size=16,
+    batch_size=8,
     num_epochs=100,
     optimizer_cfg=dict(type="adam", lr=0.01)
 )
