@@ -36,7 +36,7 @@ def compute_miou(hist):  # 分别为每个类别（在这里是19类）计算mIo
     return miou
 
 
-def evaluate_model(model, dataset, loss_func, device, num_classes, num_workers, batch_size=64):
+def evaluate_model(model, dataset, loss_func, device, num_classes, num_workers=4, batch_size=64):
     # 构建dataloader
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
@@ -52,13 +52,12 @@ def evaluate_model(model, dataset, loss_func, device, num_classes, num_workers, 
             loss = loss_func(out, label)
             loss_list.append(loss.cpu().item())
             # 计算混淆矩阵
-            pred = torch.argmax(out, dim=1).cpu().numpy() # 预测结果
+            pred = torch.argmax(out, dim=1).cpu().numpy()  # 预测结果
             label = label.cpu().numpy()
             for i in range(len(pred)):
-                hist = fast_hist(pred[i], label[i], num_classes)
+                hist = fast_hist(label[i], pred[i], num_classes)
                 hist_sum += hist
     loss = sum(loss_list) / len(loss_list)
     miou = compute_miou(hist_sum)
 
     return loss, miou
-
