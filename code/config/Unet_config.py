@@ -1,6 +1,16 @@
+from torchvision import transforms as T
+
+
 num_classes = 10
-device = 'cuda:1'
+device = 'cuda:3'
 root_dir = '/home/cm/landUseProj'
+
+train_mean=[0.12115830639715953, 0.13374122921202505, 0.10591787170772765, 0.5273172240088813]
+train_std=[0.06708223199001057, 0.07782029730399954, 0.06915748947925031, 0.16104953671241798]
+test_mean=[0.1070993648354524, 0.10668084722780714, 0.10053905204822813, 0.4039465719983469]
+test_std=[0.0659528024287434, 0.07412065904513164, 0.07394464607772513, 0.1716164042414669]
+
+
 
 dataset_cfg = dict(
     train_dir=root_dir + '/tcdata/suichang_round1_train_210120',
@@ -9,18 +19,25 @@ dataset_cfg = dict(
     train_ratio=0.8,
     val_ratio=0.2,
     random_seed=999,
+
+    # 配置transform
+    # train_set和val_set会使用train_transform；test_set会使用test_transform
+    train_transform=T.Compose([T.ToTensor(),
+                               T.Normalize(mean=train_mean, std=train_std)]),
+    test_transform=T.Compose([T.ToTensor(),
+                               T.Normalize(mean=test_mean, std=test_std)]),
 )
 
 model_cfg = dict(
-    # type='Unet',
-    # input_channel=4,
-    # num_classes=num_classes,
-    # check_point_file=root_dir + '/code/checkpoint/Unet/Unet_model.pth'
-
-    type='AttUnet',
+    type='Unet',
     input_channel=4,
     num_classes=num_classes,
-    check_point_file=root_dir + '/code/checkpoint/AttUnet/AttUnet_model.pth'
+    check_point_file=root_dir + '/code/checkpoint/Unet_norm/Unet_norm_model.pth'
+
+    # type='AttUnet',
+    # input_channel=4,
+    # num_classes=num_classes,
+    # check_point_file=root_dir + '/code/checkpoint/AttUnet/AttUnet_model.pth'
 
     # 使用已训练的模型
     # type='CheckPoint',
