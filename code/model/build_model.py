@@ -1,7 +1,7 @@
 from .FCN import VGGNet, FCN
 from .Unet import U_Net, AttU_Net, NestedUNet
+from .HRNet import hrnetv2 as HRNet
 import torch
-
 
 def build_model(model_cfg):
     '''
@@ -23,6 +23,10 @@ def build_model(model_cfg):
     elif model_cfg.type == 'NestedUnet':
         nestedUnet = NestedUNet(in_ch=model_cfg.input_channel,out_ch=model_cfg.num_classes)
         return nestedUnet
+    elif model_cfg.type == 'HRNet':
+        hrnet = HRNet()
+        # hrnet = HRNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
+        return hrnet
     elif model_cfg.type == 'CheckPoint': # 加载已有模型
         model = torch.load(model_cfg.check_point_file)
         return model

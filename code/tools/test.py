@@ -9,7 +9,7 @@ import os
 
 
 def test_main(cfg):
-    # config
+    # config_hrnet
     dataset_cfg = cfg.dataset_cfg
     test_cfg = cfg.test_cfg
     device = cfg.device
