@@ -2,7 +2,7 @@ from torchvision import transforms as T
 
 
 num_classes = 10
-device = 'cuda:1'
+device = 'cuda:2'
 root_dir = '/home/cm/landUseProj'
 
 train_mean=[0.12115830639715953, 0.13374122921202505, 0.10591787170772765, 0.5273172240088813]
@@ -29,19 +29,10 @@ dataset_cfg = dict(
 )
 
 model_cfg = dict(
-    type='Unet',
+    type='SegNet',
     input_channel=4,
     num_classes=num_classes,
-    check_point_file=root_dir + '/code/checkpoint/Unet_norm/Unet_norm_model.pth'
-
-    # type='AttUnet',
-    # input_channel=4,
-    # num_classes=num_classes,
-    # check_point_file=root_dir + '/code/checkpoint/AttUnet/AttUnet_model.pth'
-
-    # 使用已训练的模型
-    # type='CheckPoint',
-    # check_point_file=root_dir + '/code/checkpoint/Unet/Unet_model.pth',
+    check_point_file=root_dir + '/code/checkpoint/SegNet/SegNet_model.pth'
 )
 
 train_cfg = dict(
@@ -57,6 +48,6 @@ test_cfg = dict(
     dataset='test_dataset',
     batch_size=train_cfg['batch_size'],
     num_workers=train_cfg['num_workers'],
-    check_point_file=root_dir + '/code/checkpoint/Unet_norm/Unet_norm_model.pth',
-    out_dir=root_dir + '/prediction_result/Unet_norm_test_out-0123',
+    check_point_file=root_dir + '/code/checkpoint/SegNet/SegNet_model.pth',
+    out_dir=root_dir + '/prediction_result/SegNet_test_out-0123',
 )
