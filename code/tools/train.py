@@ -6,6 +6,7 @@ from torch import nn
 from torch.utils.data import random_split, DataLoader
 from torch import optim
 import time
+import os
 
 
 def train_epoch(model, optimizer, loss_func, dataloader, device):
@@ -47,7 +48,9 @@ def train_main(cfg):
 
     #
     # 构建数据集
-    land_dataset = LandDataset(dataset_cfg.train_dir, input_channel=dataset_cfg.input_channel)
+    land_dataset = LandDataset(dataset_cfg.train_dir,
+                               input_channel=dataset_cfg.input_channel,
+                               transform=dataset_cfg.train_transform)
     # 划分数据集
     train_size = int(dataset_cfg.train_ratio * len(land_dataset))
     val_size = len(land_dataset) - train_size
@@ -72,6 +75,11 @@ def train_main(cfg):
 
     # 定义损失函数
     loss_func = nn.CrossEntropyLoss().to(device)
+
+    # 创建保存模型的文件夹
+    check_point_dir = '/'.join(model_cfg.check_point_file.split('/')[:-1])
+    if not os.path.exists(check_point_dir): # 如果文件夹不存在就创建
+        os.mkdir(check_point_dir)
 
     # 开始训练
     train_loss_list = []
