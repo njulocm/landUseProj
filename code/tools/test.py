@@ -31,7 +31,7 @@ def test_main(cfg):
         raise Exception('没有配置数据集！')
 
     # 加载模型
-    model = torch.load(test_cfg.check_point_file).to(device)
+    model = torch.load(test_cfg.check_point_file,map_location=device) # device参数传在里面，不然默认是先加载到cuda:0，to之后再加载到相应的device上
 
     # 预测结果
     if test_cfg.is_predict:

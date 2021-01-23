@@ -1,5 +1,6 @@
 from .FCN import VGGNet, FCN
 from .Unet import U_Net, AttU_Net, NestedUNet
+from .SegNet import SegNet
 import torch
 
 
@@ -23,6 +24,9 @@ def build_model(model_cfg):
     elif model_cfg.type == 'NestedUnet':
         nestedUnet = NestedUNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return nestedUnet
+    elif model_cfg.type == 'SegNet':
+        segNet = SegNet(input_nbr=model_cfg.input_channel, label_nbr=model_cfg.num_classes)
+        return segNet
     elif model_cfg.type == 'CheckPoint':  # 加载已有模型
         model = torch.load(model_cfg.check_point_file)
         return model

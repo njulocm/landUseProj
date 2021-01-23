@@ -34,6 +34,7 @@ class LandDataset(Dataset):
         elif self.mode == 'test':
             return file_num
 
+    # ----有transform的版本----
     def __getitem__(self, index):
         '''获得index序号的样本'''
         filename = self.DIR + '/{:0>6d}'.format(index + 1)
@@ -46,6 +47,20 @@ class LandDataset(Dataset):
         else:
             label = 0  # 测试集没有label，随便给一个
 
-        # plt.imshow(label)
-        # plt.show()
         return data, label
+
+
+    # ----之前没有transform的版本----
+    # def __getitem__(self, index):
+    #     '''获得index序号的样本'''
+    #     filename = self.DIR + '/{:0>6d}'.format(index + 1)
+    #     data = cv2.imread(filename + '.tif', cv2.IMREAD_UNCHANGED).transpose((2, 0, 1))
+    #     data = (data[:self.input_channel] / 255.0).astype(np.float32)
+    #
+    #     if self.mode == 'train':
+    #         label = cv2.imread(filename + '.png', cv2.IMREAD_GRAYSCALE) - 1
+    #         label = label.astype(np.int)
+    #     else:
+    #         label = 0  # 测试集没有label，随便给一个
+    #
+    #     return data, label
