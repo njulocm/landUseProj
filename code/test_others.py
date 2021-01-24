@@ -5,11 +5,16 @@ import torch.nn as nn
 from model import PSPNet
 from utils import LandDataset, Config
 import os
+from tqdm import tqdm
+import time
 
-model = PSPNet(4,10, False, False)
-# model = nn.DataParallel(PSPNet(sizes=(1, 2, 3, 6), psp_size=2048, deep_features_size=1024, backend='resnet50').cuda())
-X = torch.ones((2, 4, 256, 256))
-Y = model(X)
+for i,j in tqdm(enumerate(range(100))):
+    time.sleep(2)
+
+# model = PSPNet(4,10, False, False)
+# # model = nn.DataParallel(PSPNet(sizes=(1, 2, 3, 6), psp_size=2048, deep_features_size=1024, backend='resnet50').cuda())
+# X = torch.ones((2, 4, 256, 256))
+# Y = model(X)
 
 # cfg = Config.fromfile('config/Unet_config.py')
 # dataset_cfg = cfg.dataset_cfg
