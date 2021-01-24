@@ -1,7 +1,7 @@
 from torchvision import transforms as T
 
 num_classes = 10
-device = 'cuda:2'
+device = 'cuda:3'
 root_dir = '/home/cm/landUseProj'
 
 train_mean = [0.12115830639715953, 0.13374122921202505, 0.10591787170772765, 0.5273172240088813]
@@ -26,11 +26,12 @@ dataset_cfg = dict(
 )
 
 model_cfg = dict(
-    # type='SegNet',
-    type='CheckPoint',
-    input_channel=4,
+    type='PSPNet',
+    input_channel=dataset_cfg['input_channel'],
     num_classes=num_classes,
-    check_point_file=root_dir + '/code/checkpoint/SegNet-2/SegNet_model.pth'
+    pretrained=False,
+    use_aux=False,
+    check_point_file=root_dir + '/code/checkpoint/PSPNet/PSPNet_model.pth'
 )
 
 train_cfg = dict(
@@ -46,6 +47,6 @@ test_cfg = dict(
     dataset='test_dataset',
     batch_size=train_cfg['batch_size'],
     num_workers=train_cfg['num_workers'],
-    check_point_file=root_dir + '/code/checkpoint/SegNet/SegNet_model-epoch99.pth',
-    out_dir=root_dir + '/prediction_result/SegNet_test_out-0124',
+    check_point_file=root_dir + '/code/checkpoint/PSPNet/PSPNet_model-epoch99.pth',
+    out_dir=root_dir + '/prediction_result/PSPNet_test_out-0124',
 )
