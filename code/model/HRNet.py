@@ -3,40 +3,37 @@ This HRNet implementation is modified from the following repository:
 https://github.com/HRNet/HRNet-Semantic-Segmentation
 """
 
-import sys
-import os
-
-try:
-    from urllib import urlretrieve
-except ImportError:
-    from urllib.request import urlretrieve
-import logging
+# try:
+#     from urllib import urlretrieve
+# except ImportError:
+#     from urllib.request import urlretrieve
+# #import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from lib.nn import SynchronizedBatchNorm2d
-
-BatchNorm2d = SynchronizedBatchNorm2d
+# from lib.nn import SynchronizedBatchNorm2d
+# from torch.nn import BatchNorm2d
+BatchNorm2d = nn.BatchNorm2d
 BN_MOMENTUM = 0.1
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
 
 __all__ = ['hrnetv2']
 
-model_urls = {
-    'hrnetv2': 'http://sceneparsing.csail.mit.edu/model/pretrained_resnet/hrnetv2_w48-imagenet.pth',
-}
+# model_urls = {
+#     'hrnetv2': 'http://sceneparsing.csail.mit.edu/model/pretrained_resnet/hrnetv2_w48-imagenet.pth',
+# }
 
 
-def load_url(url, model_dir='./pretrained', map_location=None):
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-    filename = url.split('/')[-1]
-    cached_file = os.path.join(model_dir, filename)
-    if not os.path.exists(cached_file):
-        sys.stderr.write('Downloading: "{}" to {}\n'.format(url, cached_file))
-        urlretrieve(url, cached_file)
-    return torch.load(cached_file, map_location=map_location)
+# def load_url(url, model_dir='./pretrained', map_location=None):
+#     if not os.path.exists(model_dir):
+#         os.makedirs(model_dir)
+#     filename = url.split('/')[-1]
+#     cached_file = os.path.join(model_dir, filename)
+#     if not os.path.exists(cached_file):
+#         sys.stderr.write('Downloading: "{}" to {}\n'.format(url, cached_file))
+#         urlretrieve(url, cached_file)
+#     return torch.load(cached_file, map_location=map_location)
 
 
 def conv3x3(in_planes, out_planes, stride=1):
@@ -141,19 +138,19 @@ class HighResolutionModule(nn.Module):
         if num_branches != len(num_blocks):
             error_msg = 'NUM_BRANCHES({}) <> NUM_BLOCKS({})'.format(
                 num_branches, len(num_blocks))
-            logger.error(error_msg)
+            #logger.error(error_msg)
             raise ValueError(error_msg)
 
         if num_branches != len(num_channels):
             error_msg = 'NUM_BRANCHES({}) <> NUM_CHANNELS({})'.format(
                 num_branches, len(num_channels))
-            logger.error(error_msg)
+            #logger.error(error_msg)
             raise ValueError(error_msg)
 
         if num_branches != len(num_inchannels):
             error_msg = 'NUM_BRANCHES({}) <> NUM_INCHANNELS({})'.format(
                 num_branches, len(num_inchannels))
-            logger.error(error_msg)
+            #logger.error(error_msg)
             raise ValueError(error_msg)
 
     def _make_one_branch(self, branch_index, block, num_blocks, num_channels,
@@ -463,7 +460,7 @@ class HRNetV2(nn.Module):
 
 def hrnetv2(pretrained=False, **kwargs):
     model = HRNetV2(n_class=10, **kwargs)
-    if pretrained:
-        model.load_state_dict(load_url(model_urls['hrnetv2']), strict=False)
+    # if pretrained:
+    #     model.load_state_dict(load_url(model_urls['hrnetv2']), strict=False)
 
     return model
