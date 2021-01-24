@@ -7,6 +7,7 @@ from torch.utils.data import random_split, DataLoader
 from torch import optim
 import time
 import os
+from tqdm import tqdm
 
 
 def train_epoch(model, optimizer, loss_func, dataloader, device):
@@ -19,7 +20,7 @@ def train_epoch(model, optimizer, loss_func, dataloader, device):
     :return: 返回该轮训练的平均loss
     '''
     loss_list = []
-    for batch, item in enumerate(dataloader):
+    for batch, item in tqdm(enumerate(dataloader)):
         # print(f"batch={batch}")
         X, label = item
         X = X.to(device)
