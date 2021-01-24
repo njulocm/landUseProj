@@ -10,6 +10,7 @@
             </list>
           </settings>
         </remote-mappings>
+        <remote-mappings server-id="python@sftp://yujian@162.105.17.203:22/home/yujian/.conda/envs/yj/bin/python3.7" />
       </list>
     </list>
   </component>
