@@ -35,7 +35,8 @@ def build_model(model_cfg):
                          use_aux=model_cfg.use_aux)
         return psp_net
     elif model_cfg.type == 'CheckPoint':  # 加载已有模型
-        model = torch.load(model_cfg.check_point_file)
+        model = torch.load(model_cfg.check_point_file, map_location=model_cfg.device)
+        print("已加载模型" + model_cfg.check_point_file)
         return model
 
     else:
