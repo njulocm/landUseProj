@@ -1,7 +1,7 @@
 from torchvision import transforms as T
 
 num_classes = 10
-device = 'cuda:3'
+device = 'cuda:2'
 root_dir = '/home/cm/landUseProj'
 
 train_mean = [0.12115830639715953, 0.13374122921202505, 0.10591787170772765, 0.5273172240088813]
@@ -26,12 +26,14 @@ dataset_cfg = dict(
 )
 
 model_cfg = dict(
-    type='PSPNet',
+    type='CheckPoint', # 由于系统更新中断了，从epoch9的结果开始重新训练
     input_channel=dataset_cfg['input_channel'],
     num_classes=num_classes,
     pretrained=False,
     use_aux=False,
-    check_point_file=root_dir + '/code/checkpoint/PSPNet/PSPNet_model.pth'
+    check_point_file=root_dir + '/code/checkpoint/PSPNet/PSPNet_model.pth',
+    device=device, # 加载checkPoint需要指定device，否则会默认加载到cuda:0而显存溢出
+
 )
 
 train_cfg = dict(

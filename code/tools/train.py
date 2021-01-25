@@ -20,7 +20,7 @@ def train_epoch(model, optimizer, loss_func, dataloader, device):
     :return: 返回该轮训练的平均loss
     '''
     loss_list = []
-    for batch, item in tqdm(enumerate(dataloader)):
+    for batch, item in enumerate(dataloader):
         # print(f"batch={batch}")
         X, label = item
         X = X.to(device)
