@@ -1,33 +1,19 @@
 import torch
-import torch.nn.functional as F
 from torch import nn
-from torchvision import models
+import torch.nn.functional as F
 
-# from ..utils import initialize_weights
-# from .config import res101_path
+import model.resnet as models
 
-res101_path = None
 
-def initialize_weights(*models):
-    for model in models:
-        for module in model.modules():
-            if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
-                nn.init.kaiming_normal(module.weight)
-                if module.bias is not None:
-                    module.bias.data.zero_()
-            elif isinstance(module, nn.BatchNorm2d):
-                module.weight.data.fill_(1)
-                module.bias.data.zero_()
-
-class _PyramidPoolingModule(nn.Module):
-    def __init__(self, in_dim, reduction_dim, setting):
-        super(_PyramidPoolingModule, self).__init__()
+class PPM(nn.Module):
+    def __init__(self, in_dim, reduction_dim, bins):
+        super(PPM, self).__init__()
         self.features = []
-        for s in setting:
+        for bin in bins:
             self.features.append(nn.Sequential(
-                nn.AdaptiveAvgPool2d(s),
+                nn.AdaptiveAvgPool2d(bin),
                 nn.Conv2d(in_dim, reduction_dim, kernel_size=1, bias=False),
-                nn.BatchNorm2d(reduction_dim, momentum=.95),
+                nn.BatchNorm2d(reduction_dim),
                 nn.ReLU(inplace=True)
             ))
         self.features = nn.ModuleList(self.features)
@@ -36,19 +22,32 @@ class _PyramidPoolingModule(nn.Module):
         x_size = x.size()
         out = [x]
         for f in self.features:
-            out.append(F.upsample(f(x), x_size[2:], mode='bilinear'))
-        out = torch.cat(out, 1)
-        return out
+            out.append(F.interpolate(f(x), x_size[2:], mode='bilinear', align_corners=True))
+        return torch.cat(out, 1)
 
 
 class PSPNet(nn.Module):
-    def __init__(self, in_chan, num_classes, pretrained=True, use_aux=True):
+    def __init__(self, layers=50, in_chans=3, bins=(1, 2, 3, 6), dropout=0.1,
+                 classes=2, zoom_factor=8, use_ppm=True,
+                 criterion=nn.CrossEntropyLoss(ignore_index=255),
+                 pretrained=False):
         super(PSPNet, self).__init__()
-        self.use_aux = use_aux
-        resnet = models.resnet101()
-        if pretrained:
-            resnet.load_state_dict(torch.load(res101_path))
-        self.layer0 = nn.Sequential(nn.Conv2d(in_chan, 3, 1),resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool) # 自己改的
+        assert layers in [50, 101, 152]
+        assert 2048 % len(bins) == 0
+        assert classes > 1
+        assert zoom_factor in [1, 2, 4, 8]
+        self.zoom_factor = zoom_factor
+        self.use_ppm = use_ppm
+        self.criterion = criterion
+
+        if layers == 50:
+            resnet = models.resnet50(in_chans=in_chans, pretrained=pretrained)
+        elif layers == 101:
+            resnet = models.resnet101(in_chans=in_chans, pretrained=pretrained)
+        else:
+            resnet = models.resnet152(in_chans=in_chans, pretrained=pretrained)
+        self.layer0 = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu, resnet.conv2, resnet.bn2, resnet.relu,
+                                    resnet.conv3, resnet.bn3, resnet.relu, resnet.maxpool)
         self.layer1, self.layer2, self.layer3, self.layer4 = resnet.layer1, resnet.layer2, resnet.layer3, resnet.layer4
 
         for n, m in self.layer3.named_modules():
@@ -62,34 +61,62 @@ class PSPNet(nn.Module):
             elif 'downsample.0' in n:
                 m.stride = (1, 1)
 
-        self.ppm = _PyramidPoolingModule(2048, 512, (1, 2, 3, 6))
-        self.final = nn.Sequential(
-            nn.Conv2d(4096, 512, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(512, momentum=.95),
+        fea_dim = 2048
+        if use_ppm:
+            self.ppm = PPM(fea_dim, int(fea_dim / len(bins)), bins)
+            fea_dim *= 2
+        self.cls = nn.Sequential(
+            nn.Conv2d(fea_dim, 512, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(512),
             nn.ReLU(inplace=True),
-            nn.Dropout(0.1),
-            nn.Conv2d(512, num_classes, kernel_size=1)
+            nn.Dropout2d(p=dropout),
+            nn.Conv2d(512, classes, kernel_size=1)
         )
+        if self.training:
+            self.aux = nn.Sequential(
+                nn.Conv2d(1024, 256, kernel_size=3, padding=1, bias=False),
+                nn.BatchNorm2d(256),
+                nn.ReLU(inplace=True),
+                nn.Dropout2d(p=dropout),
+                nn.Conv2d(256, classes, kernel_size=1)
+            )
 
-        if use_aux:
-            self.aux_logits = nn.Conv2d(1024, num_classes, kernel_size=1)
-            initialize_weights(self.aux_logits)
-
-        initialize_weights(self.ppm, self.final)
-
-    def forward(self, x):
+    def forward(self, x, y=None):
         x_size = x.size()
+        # assert (x_size[2]-1) % 8 == 0 and (x_size[3]-1) % 8 == 0
+        h = int((x_size[2] - 1) / 8 * self.zoom_factor + 1)
+        w = int((x_size[3] - 1) / 8 * self.zoom_factor + 1)
+
         x = self.layer0(x)
         x = self.layer1(x)
         x = self.layer2(x)
-        x = self.layer3(x)
-        if self.training and self.use_aux:
-            aux = self.aux_logits(x)
-        x = self.layer4(x)
-        x = self.ppm(x)
-        x = self.final(x)
-        if self.training and self.use_aux:
-            return F.upsample(x, x_size[2:], mode='bilinear'), F.upsample(aux, x_size[2:], mode='bilinear')
-        return F.upsample(x, x_size[2:], mode='bilinear')
+        x_tmp = self.layer3(x)
+        x = self.layer4(x_tmp)
+        if self.use_ppm:
+            x = self.ppm(x)
+        x = self.cls(x)
+        if self.zoom_factor != 1:
+            x = F.interpolate(x, size=(h, w), mode='bilinear', align_corners=True)
+
+        if self.training:
+            aux = self.aux(x_tmp)
+            if self.zoom_factor != 1:
+                aux = F.interpolate(aux, size=(h, w), mode='bilinear', align_corners=True)
+            main_loss = self.criterion(x, y)
+            aux_loss = self.criterion(aux, y)
+            return x.max(1)[1], main_loss, aux_loss
+        else:
+            return x
 
 
+if __name__ == '__main__':
+    import os
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = '0, 1'
+    input = torch.rand(4, 3, 473, 473).cuda()
+    model = PSPNet(layers=50, bins=(1, 2, 3, 6), dropout=0.1, classes=21, zoom_factor=1, use_ppm=True,
+                   pretrained=True).cuda()
+    model.eval()
+    print(model)
+    output = model(input)
+    print('PSPNet', output.size())
