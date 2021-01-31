@@ -18,26 +18,31 @@ class LandDataset(Dataset):
         self.DIR = DIR
         self.transform = transform
         self.input_channel = input_channel
-        # 判断是train还是test的数据
-        if self.DIR.find('train') > -1:
-            self.mode = 'train'
-        elif self.DIR.find('test') > -1:
+        self.index_list = self._get_index_list() # 所有数据的index
+
+        # 判断是train还是test的数据(train中包括)
+        if self.DIR.find('test') > -1:
             self.mode = 'test'
             self.indices = list(range(self.__len__()))  # 如果是测试集，手动设置self.indices参数，在预测的时候需要用到
+        else:
+            self.mode = 'train'
+
+
+
+    def _get_index_list(self): # 获得所有数据的index
+        index_list = [filename.split('.')[0] for filename in os.listdir(self.DIR)]
+        index_list = list(set(index_list))
+        index_list.sort()
+        return index_list
 
     def __len__(self):
         '''返回数据集大小'''
-        file_num = len(os.listdir(self.DIR))
-
-        if self.mode == 'train':
-            return file_num // 2
-        elif self.mode == 'test':
-            return file_num
+        return len(self.index_list)
 
     # ----有transform的版本----
     def __getitem__(self, index):
         '''获得index序号的样本'''
-        filename = self.DIR + '/{:0>6d}'.format(index + 1)
+        filename = self.DIR + '/' + self.index_list[index] # 不含后缀
         data = cv2.imread(filename + '.tif', cv2.IMREAD_UNCHANGED)
         data = self.transform(data)
 

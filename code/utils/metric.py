@@ -42,6 +42,7 @@ def evaluate_model(model, dataset, loss_func, device, num_classes, num_workers=4
 
     hist_sum = np.zeros((num_classes, num_classes))
     loss_list = []
+    model.eval()
     with torch.no_grad():
         for batch, item in enumerate(dataloader):
             data, label = item

@@ -15,14 +15,17 @@ def test_main(cfg):
     device = cfg.device
 
     if test_cfg.dataset == 'val_dataset':
-        land_dataset = LandDataset(dataset_cfg.train_dir,
-                                   input_channel=dataset_cfg.input_channel,
-                                   transform=dataset_cfg.train_transform)
-        # 划分数据集
-        train_size = int(dataset_cfg.train_ratio * len(land_dataset))
-        val_size = len(land_dataset) - train_size
-        _, dataset = random_split(land_dataset, [train_size, val_size],
-                                  generator=torch.manual_seed(dataset_cfg.random_seed))
+        dataset = LandDataset(DIR=dataset_cfg.val_dir,
+                              input_channel=dataset_cfg.input_channel,
+                              transform=dataset_cfg.train_transform)
+        # land_dataset = LandDataset(dataset_cfg.train_dir,
+        #                            input_channel=dataset_cfg.input_channel,
+        #                            transform=dataset_cfg.train_transform)
+        # # 划分数据集
+        # train_size = int(dataset_cfg.train_ratio * len(land_dataset))
+        # val_size = len(land_dataset) - train_size
+        # _, dataset = random_split(land_dataset, [train_size, val_size],
+        #                           generator=torch.manual_seed(dataset_cfg.random_seed))
     elif test_cfg.dataset == 'test_dataset':
         dataset = LandDataset(dataset_cfg.test_dir,
                               input_channel=dataset_cfg.input_channel,
@@ -58,7 +61,7 @@ def predict(model, dataset, out_dir, device, batch_size=128):
         os.mkdir(out_dir)
 
     # 获取数据集中样本的序号
-    sample_index_list = dataset.indices
+    sample_index_list = dataset.index_list
 
     # 构建dataloader
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4, shuffle=False)
@@ -71,5 +74,5 @@ def predict(model, dataset, out_dir, device, batch_size=128):
             pred = torch.argmax(out, dim=1).cpu().numpy()
             for i in range(len(pred)):
                 sample_index = sample_index_list[batch * batch_size + i]
-                out_name = out_dir + '/{:0>6d}.png'.format(sample_index + 1)
+                out_name = out_dir + f'/{sample_index}.png'
                 cv2.imwrite(out_name, pred[i]+1) # 提交的结果需要1~10
