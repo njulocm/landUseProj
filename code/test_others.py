@@ -1,22 +1,37 @@
 from model import U_Net, AttU_Net, NestedUNet
 import torch
+import torch.nn as nn
+
+from model import PSPNet
 from utils import LandDataset, Config
 import os
+from tqdm import tqdm
+import time
+import logging
+import cv2
+from torch import randperm
 
-# model = NestedUNet(4, 10)
-# X = torch.ones((2, 4, 256, 256))
-# Y = model(X)
+from torchvision import transforms as T
+import numpy as np
+import utils.transforms_DL as T_DL
 
-# cfg = Config.fromfile('config/Unet_config.py')
-# dataset_cfg = cfg.dataset_cfg
-# land_dataset = LandDataset(dataset_cfg.test_dir,
-#                            input_channel=dataset_cfg.input_channel,
-#                            transform=dataset_cfg.test_transform)
-# xx = land_dataset.__getitem__(index=10)
+train_mean = [0, 0, 0, 0]
+train_std = [1, 1, 1, 1]
 
-check_point_file = '/home/cm/landUseProj/code/checkpoint/NestedUnet11/NestedUnet_model.pth'
-check_point_dir = '/'.join(check_point_file.split('/')[:-1])
-if not os.path.exists(check_point_dir):
-    os.mkdir(check_point_dir)
+img = cv2.imread('/home/cm/landUseProj/tcdata/suichang_round1_train_210120/000033.tif', cv2.IMREAD_UNCHANGED)
+label = cv2.imread('/home/cm/landUseProj/tcdata/suichang_round1_train_210120/000333.png', cv2.IMREAD_GRAYSCALE) - 1
+prob = 0.5
+# T.RandomRotation(90)(torch.ones(1,256,256))
+
+transform = T.Compose([
+    T_DL.ToTensor_DL(),
+    T_DL.Normalized_DL(mean=train_mean, std=train_std),
+    T_DL.RandomFlip_DL(p=1),
+    T_DL.RandomRotation_DL(p=1),
+    T_DL.RandomColorJitter_DL(p=1, brightness=1, contrast=1, saturation=1, hue=0.5),
+    T_DL.Normalized_DL(mean=train_mean, std=train_std)
+])
+img1, label1 = transform((img, label))
+label2 = label1.numpy()
 
 print('end')

@@ -1,6 +1,8 @@
 from .FCN import VGGNet, FCN
 from .Unet import U_Net, AttU_Net, NestedUNet
 from .SegNet import SegNet
+# from .PSPNet import PSPNet
+from .pspnet import PSPNet
 import torch
 
 
@@ -27,8 +29,19 @@ def build_model(model_cfg):
     elif model_cfg.type == 'SegNet':
         segNet = SegNet(input_nbr=model_cfg.input_channel, label_nbr=model_cfg.num_classes)
         return segNet
+    elif model_cfg.type == 'PSPNet':
+        psp_net = PSPNet(layers=model_cfg.layers,
+                         in_chans=model_cfg.input_channel,
+                         bins=model_cfg.bins,
+                         dropout=model_cfg.dropout,
+                         classes=model_cfg.num_classes,
+                         zoom_factor=model_cfg.zoom_factor,
+                         use_ppm=model_cfg.use_ppm,
+                         pretrained=model_cfg.pretrained)
+        return psp_net
     elif model_cfg.type == 'CheckPoint':  # 加载已有模型
-        model = torch.load(model_cfg.check_point_file)
+        model = torch.load(model_cfg.check_point_file, map_location=model_cfg.device)
+        print("已加载模型" + model_cfg.check_point_file)
         return model
 
     else:

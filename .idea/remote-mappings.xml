@@ -10,6 +10,13 @@
             </list>
           </settings>
         </remote-mappings>
+        <remote-mappings server-id="python@sftp://cm@162.105.17.203:22/home/cm/.conda/envs/conda_cm/bin/python3.7">
+          <settings>
+            <list>
+              <mapping local-root="$PROJECT_DIR$" remote-root="/home/cm/landUseProj" />
+            </list>
+          </settings>
+        </remote-mappings>
       </list>
     </list>
   </component>
