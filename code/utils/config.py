@@ -48,10 +48,10 @@ def add_args(parser, cfg, prefix=""):
 
 
 class Config(object):
-    """A facility for config_hrnet and config_hrnet files.
+    """A facility for config and config files.
 
     It supports common file formats as configs: python/json/yaml. The interface
-    is the same as a dict object and also allows access config_hrnet values as
+    is the same as a dict object and also allows access config values as
     attributes.
 
     Example:
@@ -62,13 +62,13 @@ class Config(object):
         {'b1': [0, 1]}
         >>> cfg.b.b1
         [0, 1]
-        >>> cfg = Config.fromfile('tests/data/config_hrnet/a.py')
+        >>> cfg = Config.fromfile('tests/data/config/a.py')
         >>> cfg.filename
-        "/home/kchen/projects/torchie/tests/data/config_hrnet/a.py"
+        "/home/kchen/projects/torchie/tests/data/config/a.py"
         >>> cfg.item4
         'test'
         >>> cfg
-        "Config [path: /home/kchen/projects/torchie/tests/data/config_hrnet/a.py]: "
+        "Config [path: /home/kchen/projects/torchie/tests/data/config/a.py]: "
         "{'item1': [1, 2], 'item2': {'a': 0}, 'item3': True, 'item4': 'test'}"
 
     """
@@ -82,7 +82,7 @@ class Config(object):
         if filename.endswith(".py"):
             module_name = osp.basename(filename)[:-3]
             if "." in module_name:
-                raise ValueError("Dots are not allowed in config_hrnet file path.")
+                raise ValueError("Dots are not allowed in config file path.")
             config_dir = osp.dirname(filename)
             sys.path.insert(0, config_dir)
             mod = import_module(module_name)
@@ -102,14 +102,14 @@ class Config(object):
 
     @staticmethod
     def auto_argparser(description=None):
-        """Generate argparser from config_hrnet file automatically (experimental)
+        """Generate argparser from config file automatically (experimental)
         """
         partial_parser = ArgumentParser(description=description)
-        partial_parser.add_argument("config_hrnet", help="config_hrnet file path")
+        partial_parser.add_argument("config", help="config file path")
         cfg_file = partial_parser.parse_known_args()[0].config
         cfg = Config.fromfile(cfg_file)
         parser = ArgumentParser(description=description)
-        parser.add_argument("config_hrnet", help="config_hrnet file path")
+        parser.add_argument("config", help="config file path")
         add_args(parser, cfg)
         return parser, cfg
 
