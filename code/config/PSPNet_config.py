@@ -2,9 +2,9 @@ from torchvision import transforms as T
 from torch import nn
 
 num_classes = 10
-device = 'cuda:3'
+device = 'cuda:1'
 root_dir = '/home/cm/landUseProj'
-logfile = root_dir+'/code/log/PSPNet_aus-log-0131.log'
+logfile = root_dir+'/code/log/PSPNet_res101_aux-log-0131.log'
 
 train_mean = [0.12115830639715953, 0.13374122921202505, 0.10591787170772765, 0.5273172240088813]
 train_std = [0.06708223199001057, 0.07782029730399954, 0.06915748947925031, 0.16104953671241798]
@@ -32,7 +32,7 @@ dataset_cfg = dict(
 model_cfg = dict(
     type='PSPNet',
     aux_weight = 0.4, # 辅助loss权重
-    layers=50, # resnet的层数
+    layers=101, # resnet的层数
     input_channel=dataset_cfg['input_channel'],
     num_classes=num_classes,
     pretrained=False,
@@ -42,7 +42,7 @@ model_cfg = dict(
     zoom_factor=8,
     use_ppm=True,
 
-    check_point_file=root_dir + '/code/checkpoint/PSPNet_aux/PSPNet_aux_model.pth',
+    check_point_file=root_dir + '/code/checkpoint/PSPNet_res101_aux/PSPNet_res101_aux_model.pth',
     device=device, # 加载checkPoint需要指定device，否则会默认加载到cuda:0而显存溢出
 
 )

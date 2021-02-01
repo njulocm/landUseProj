@@ -197,7 +197,6 @@ def train_main(cfg):
 
     # 构建模型
     model = build_model(model_cfg).to(device)
-    # model = torch.nn.DataParallel(model)
 
     # 定义优化器
     optimizer_cfg = train_cfg.optimizer_cfg
