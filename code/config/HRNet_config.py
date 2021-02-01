@@ -1,7 +1,7 @@
 from torchvision import transforms as T
 
 num_classes = 10
-device = 'cuda:1'
+device = 'cuda:0'
 root_dir = '/home/yujian/landUseProj'
 
 train_mean=[0.12115830639715953, 0.13374122921202505, 0.10591787170772765, 0.5273172240088813]
@@ -33,7 +33,10 @@ model_cfg = dict(
     type='HRNet',
     input_channel=4,
     num_classes=num_classes,
-    check_point_file=root_dir + '/code/checkpoint/HRNet/HRNet_model.pth'
+    pretrained=False,
+    use_aux=False,
+    check_point_file=root_dir + '/code/checkpoint2/HRNet/HRNet_model.pth',
+    device=device
 
     # 使用已训练的模型
     # type='CheckPoint',
@@ -44,16 +47,17 @@ train_cfg = dict(
     num_workers=12,
     batch_size=4,
     num_epochs=100,
-    optimizer_cfg=dict(type="adam", lr=0.01)
+    #optimizer_cfg=dict(type="adam", lr=5e-3)
+    optimizer_cfg=dict(type="sgd", lr=0.01, momentum=0.9, weight_decay=0.0001)
 )
 
 test_cfg = dict(
-    is_predict=False,  # 是否是预测分类结果
-    is_evaluate=True,  # 是否评估模型，也就是计算mIoU
-    dataset='val_dataset',
+    is_predict=True,  # 是否是预测分类结果
+    is_evaluate=False,  # 是否评估模型，也就是计算mIoU
+    dataset='test_dataset',
     batch_size=train_cfg['batch_size'],
     num_workers=train_cfg['num_workers'],
-    check_point_file=root_dir + '/code/checkpoint/Unet/Unet_model-epoch99.pth',
-    out_dir=root_dir + '/prediction_result/Unet_val_out-0121',
+    check_point_file=root_dir + '/code/checkpoint2/HRNet/HRNet_model-epoch99.pth',
+    out_dir=root_dir + '/prediction_result/HRNet_val_out-0130-epoch99',
 
 )
