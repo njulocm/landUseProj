@@ -16,18 +16,12 @@ def test_main(cfg):
 
     if test_cfg.dataset == 'val_dataset':
         dataset = LandDataset(DIR=dataset_cfg.val_dir,
+                              mode='val',
                               input_channel=dataset_cfg.input_channel,
-                              transform=dataset_cfg.train_transform)
-        # land_dataset = LandDataset(dataset_cfg.train_dir,
-        #                            input_channel=dataset_cfg.input_channel,
-        #                            transform=dataset_cfg.train_transform)
-        # # 划分数据集
-        # train_size = int(dataset_cfg.train_ratio * len(land_dataset))
-        # val_size = len(land_dataset) - train_size
-        # _, dataset = random_split(land_dataset, [train_size, val_size],
-        #                           generator=torch.manual_seed(dataset_cfg.random_seed))
+                              transform=dataset_cfg.val_transform)
     elif test_cfg.dataset == 'test_dataset':
         dataset = LandDataset(dataset_cfg.test_dir,
+                              mode='test',
                               input_channel=dataset_cfg.input_channel,
                               transform=dataset_cfg.test_transform)
     else:
