@@ -84,19 +84,14 @@ def train_main(cfg):
     #
     # 构建数据集
     train_dataset = LandDataset(DIR=dataset_cfg.train_dir,
+                                mode='train',
                                 input_channel=dataset_cfg.input_channel,
                                 transform=dataset_cfg.train_transform)
     val_dataset = LandDataset(DIR=dataset_cfg.val_dir,
+                              mode='val',
                               input_channel=dataset_cfg.input_channel,
-                              transform=dataset_cfg.train_transform)
-    # land_dataset = LandDataset(dataset_cfg.train_dir,
-    #                            input_channel=dataset_cfg.input_channel,
-    #                            transform=dataset_cfg.train_transform)
-    # # 划分数据集
-    # train_size = int(dataset_cfg.train_ratio * len(land_dataset))
-    # val_size = len(land_dataset) - train_size
-    # train_dataset, val_dataset = random_split(land_dataset, [train_size, val_size],
-    #                                           generator=torch.manual_seed(dataset_cfg.random_seed))
+                              transform=dataset_cfg.val_transform)
+
 
     # 构建dataloader
     train_dataloader = DataLoader(train_dataset, batch_size=train_cfg.batch_size, shuffle=True,
@@ -136,6 +131,7 @@ def train_main(cfg):
     best_epoch = 0
     best_miou = 0
     train_loss = 10  # 设置一个初始值
+    logger.info('开始在{}上训练{}模型...'.format(device, model_cfg.type))
     for epoch in range(train_cfg.num_epochs):
         print()
         print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
