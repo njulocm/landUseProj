@@ -67,7 +67,7 @@ def train_main(cfg):
     :return:
     '''
 
-    # config_hrnet
+    # config
     train_cfg = cfg.train_cfg
     dataset_cfg = cfg.dataset_cfg
     model_cfg = cfg.model_cfg
