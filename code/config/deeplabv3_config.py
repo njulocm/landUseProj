@@ -3,9 +3,9 @@ import utils.transforms_DL as T_DL
 
 num_classes = 10
 input_channel = 3
-device = 'cuda:1'
+device = 'cuda:3'
 root_dir = '/home/cailinhao/landUseProj_master/landUseProj/'
-logfile = root_dir + '/code/log/deeplabv3-0201.log'
+logfile = root_dir + '/code/log/deeplabv3-argu_color-0202.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
 train_std = [0.229, 0.224, 0.225, 0.25]
@@ -20,7 +20,7 @@ train_transform = T.Compose([
     T_DL.ToTensor_DL(),  # 转为tensor
     T_DL.RandomFlip_DL(p=prob),  # 概率p水平或者垂直翻转
     # T_DL.RandomRotation_DL(p=prob),  # 概率p发生随机旋转(只会90，180，270)
-    # T_DL.RandomColorJitter_DL(p=prob, brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5),  # 概率p调整rgb
+    T_DL.RandomColorJitter_DL(p=prob, brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5),  # 概率p调整rgb
     T_DL.Normalized_DL(mean=train_mean[:input_channel if input_channel != 4 else -1], std=train_std[:input_channel if input_channel != 4 else -1]),  # 归一化
 ])
 
@@ -61,7 +61,7 @@ model_cfg = dict(
     sync_bn=False,
     freeze_bn=False,
     pretrained=True,
-    check_point_file=root_dir + '/code/checkpoint/deeplabv3/deeplabv3_best.pth',
+    check_point_file=root_dir + '/code/checkpoint/deeplabv3-argu_color-0202/deeplabv3_best.pth',
 
     # type='AttUnet',
     # input_channel=4,
