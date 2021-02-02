@@ -4,6 +4,7 @@ from .SegNet import SegNet
 # from .PSPNet import PSPNet
 from .PSPNet import PSPNet
 from .deeplab.deeplab import DeepLabV3P
+from .HRNet import hrnetv2 as HRNet
 import torch
 
 
@@ -21,11 +22,11 @@ def build_model(model_cfg):
     elif model_cfg.type == 'Unet':
         u_net = U_Net(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return u_net
-    elif model_cfg.type == 'AttUnet':
+    elif model_cfg.type =='AttUnet':
         attUnet = AttU_Net(img_ch=model_cfg.input_channel, output_ch=model_cfg.num_classes)
         return attUnet
     elif model_cfg.type == 'NestedUnet':
-        nestedUnet = NestedUNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
+        nestedUnet = NestedUNet(in_ch=model_cfg.input_channel,out_ch=model_cfg.num_classes)
         return nestedUnet
     elif model_cfg.type == 'SegNet':
         segNet = SegNet(input_nbr=model_cfg.input_channel, label_nbr=model_cfg.num_classes)
@@ -48,6 +49,10 @@ def build_model(model_cfg):
                                       freeze_bn=model_cfg.freeze_bn,
                                       pretrained=model_cfg.pretrained)
         return deeplabv3p_model
+    elif model_cfg.type == 'HRNet':
+        hrnet = HRNet()
+        # hrnet = HRNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
+        return hrnet
     elif model_cfg.type == 'CheckPoint':  # 加载已有模型
         model = torch.load(model_cfg.check_point_file, map_location=model_cfg.device)
         print("已加载模型" + model_cfg.check_point_file)
