@@ -104,9 +104,11 @@ class RandomColorJitter_DL(torch.nn.Module):
         if torch.rand(1) < self.p:
             # print('图像rgb变换')
             rgb = img[0:3]
-            nir = img[3]
             rgb = self.colorJitter(rgb)
-            img = torch.cat([rgb, torch.unsqueeze(nir, 0)])
+
+            if img.shape[0] > 3:
+                nir = img[3]
+                img = torch.cat([rgb, torch.unsqueeze(nir, 0)])
         return img, label
 
 
