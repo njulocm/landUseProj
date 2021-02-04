@@ -92,7 +92,6 @@ def train_main(cfg):
                               input_channel=dataset_cfg.input_channel,
                               transform=dataset_cfg.val_transform)
 
-
     # 构建dataloader
     train_dataloader = DataLoader(train_dataset, batch_size=train_cfg.batch_size, shuffle=True,
                                   num_workers=train_cfg.num_workers)
@@ -176,4 +175,4 @@ def train_main(cfg):
         out_str = "第{}轮训练完成，耗时{}，\n训练集上的loss={:.6f}；\n验证集上的loss={:.4f}，mIoU={:.6f}\n最好的结果是第{}轮，mIoU={:.6f}" \
             .format(epoch, time_str, train_loss, val_loss, val_miou, best_epoch, best_miou)
         print(out_str)
-        logger.info(out_str)
+        logger.info(out_str + '\n')
