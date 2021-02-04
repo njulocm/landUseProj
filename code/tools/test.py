@@ -3,7 +3,7 @@ from utils import evaluate_model, LandDataset
 import torch
 import torch.nn as nn
 from torch.utils.data import random_split, DataLoader
-
+from tqdm import tqdm
 import cv2
 import os
 
@@ -61,7 +61,7 @@ def predict(model, dataset, out_dir, device, batch_size=128):
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4, shuffle=False)
 
     with torch.no_grad():
-        for batch, item in enumerate(dataloader):
+        for batch, item in tqdm(enumerate(dataloader)):
             data, _ = item
             data = data.to(device)
             out = model(data)
