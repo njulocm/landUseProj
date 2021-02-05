@@ -4,14 +4,17 @@ import torch.nn.functional as F
 import torch.utils.data
 import torch
 
+from .crfasrnn.crfrnn import CrfRnn
+
 
 class conv_block(nn.Module):
     """
     Convolution Block 
     """
+
     def __init__(self, in_ch, out_ch):
         super(conv_block, self).__init__()
-        
+
         self.conv = nn.Sequential(
             nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=1, padding=1, bias=True),
             nn.BatchNorm2d(out_ch),
@@ -21,7 +24,6 @@ class conv_block(nn.Module):
             nn.ReLU(inplace=True))
 
     def forward(self, x):
-
         x = self.conv(x)
         return x
 
@@ -30,6 +32,7 @@ class up_conv(nn.Module):
     """
     Up Convolution Block
     """
+
     def __init__(self, in_ch, out_ch):
         super(up_conv, self).__init__()
         self.up = nn.Sequential(
@@ -49,12 +52,13 @@ class U_Net(nn.Module):
     UNet - Basic Implementation
     Paper : https://arxiv.org/abs/1505.04597
     """
+
     def __init__(self, in_ch=3, out_ch=1):
         super(U_Net, self).__init__()
 
         n1 = 64
         filters = [n1, n1 * 2, n1 * 4, n1 * 8, n1 * 16]
-        
+
         self.Maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.Maxpool2 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.Maxpool3 = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -80,10 +84,9 @@ class U_Net(nn.Module):
 
         self.Conv = nn.Conv2d(filters[0], out_ch, kernel_size=1, stride=1, padding=0)
 
-       # self.active = torch.nn.Sigmoid()
+    # self.active = torch.nn.Sigmoid()
 
     def forward(self, x):
-
         e1 = self.Conv1(x)
 
         e2 = self.Maxpool1(e1)
@@ -117,15 +120,29 @@ class U_Net(nn.Module):
 
         out = self.Conv(d2)
 
-        #d1 = self.active(out)
+        # d1 = self.active(out)
 
         return out
+
+
+class UnetCRF(nn.Module):
+    def __init__(self, in_ch=3, out_ch=10, num_iterations=5, crf_init_params=None):
+        super(UnetCRF, self).__init__()
+        self.unet = U_Net(in_ch=in_ch, out_ch=out_ch)
+        self.crfrnn = CrfRnn(num_labels=out_ch,
+                             num_iterations=num_iterations,
+                             crf_init_params=None)
+
+    def forward(self, x):
+        out = self.unet(x)
+        return self.crfrnn(x, out)
 
 
 class Recurrent_block(nn.Module):
     """
     Recurrent Block for R2Unet_CNN
     """
+
     def __init__(self, out_ch, t=2):
         super(Recurrent_block, self).__init__()
 
@@ -149,6 +166,7 @@ class RRCNN_block(nn.Module):
     """
     Recurrent Residual Convolutional Neural Network Block
     """
+
     def __init__(self, in_ch, out_ch, t=2):
         super(RRCNN_block, self).__init__()
 
@@ -170,6 +188,7 @@ class R2U_Net(nn.Module):
     R2U-Unet implementation
     Paper: https://arxiv.org/abs/1802.06955
     """
+
     def __init__(self, img_ch=3, output_ch=1, t=2):
         super(R2U_Net, self).__init__()
 
@@ -207,11 +226,9 @@ class R2U_Net(nn.Module):
 
         self.Conv = nn.Conv2d(filters[0], output_ch, kernel_size=1, stride=1, padding=0)
 
-       # self.active = torch.nn.Sigmoid()
-
+    # self.active = torch.nn.Sigmoid()
 
     def forward(self, x):
-
         e1 = self.RRCNN1(x)
 
         e2 = self.Maxpool(e1)
@@ -244,7 +261,7 @@ class R2U_Net(nn.Module):
 
         out = self.Conv(d2)
 
-      # out = self.active(out)
+        # out = self.active(out)
 
         return out
 
@@ -289,6 +306,7 @@ class AttU_Net(nn.Module):
     Attention Unet implementation
     Paper: https://arxiv.org/abs/1804.03999
     """
+
     def __init__(self, img_ch=3, output_ch=1):
         super(AttU_Net, self).__init__()
 
@@ -324,11 +342,9 @@ class AttU_Net(nn.Module):
 
         self.Conv = nn.Conv2d(filters[0], output_ch, kernel_size=1, stride=1, padding=0)
 
-        #self.active = torch.nn.Sigmoid()
-
+        # self.active = torch.nn.Sigmoid()
 
     def forward(self, x):
-
         e1 = self.Conv1(x)
 
         e2 = self.Maxpool1(e1)
@@ -343,9 +359,9 @@ class AttU_Net(nn.Module):
         e5 = self.Maxpool4(e4)
         e5 = self.Conv5(e5)
 
-        #print(x5.shape)
+        # print(x5.shape)
         d5 = self.Up5(e5)
-        #print(d5.shape)
+        # print(d5.shape)
         x4 = self.Att5(g=d5, x=e4)
         d5 = torch.cat((x4, d5), dim=1)
         d5 = self.Up_conv5(d5)
@@ -367,7 +383,7 @@ class AttU_Net(nn.Module):
 
         out = self.Conv(d2)
 
-      #  out = self.active(out)
+        #  out = self.active(out)
 
         return out
 
@@ -377,6 +393,7 @@ class R2AttU_Net(nn.Module):
     Residual Recuurent Block with attention Unet
     Implementation : https://github.com/LeeJunHyun/Image_Segmentation
     """
+
     def __init__(self, in_ch=3, out_ch=1, t=2):
         super(R2AttU_Net, self).__init__()
 
@@ -412,11 +429,9 @@ class R2AttU_Net(nn.Module):
 
         self.Conv = nn.Conv2d(filters[0], out_ch, kernel_size=1, stride=1, padding=0)
 
-       # self.active = torch.nn.Sigmoid()
-
+    # self.active = torch.nn.Sigmoid()
 
     def forward(self, x):
-
         e1 = self.RRCNN1(x)
 
         e2 = self.Maxpool1(e1)
@@ -453,14 +468,15 @@ class R2AttU_Net(nn.Module):
 
         out = self.Conv(d2)
 
-      #  out = self.active(out)
+        #  out = self.active(out)
 
         return out
 
-#For nested 3 channels are required
+
+# For nested 3 channels are required
 
 class conv_block_nested(nn.Module):
-    
+
     def __init__(self, in_ch, mid_ch, out_ch):
         super(conv_block_nested, self).__init__()
         self.activation = nn.ReLU(inplace=True)
@@ -473,20 +489,22 @@ class conv_block_nested(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.activation(x)
-        
+
         x = self.conv2(x)
         x = self.bn2(x)
         output = self.activation(x)
 
         return output
-    
-#Nested Unet
+
+
+# Nested Unet
 
 class NestedUNet(nn.Module):
     """
     Implementation of this paper:
     https://arxiv.org/pdf/1807.10165.pdf
     """
+
     def __init__(self, in_ch=3, out_ch=1):
         super(NestedUNet, self).__init__()
 
@@ -507,20 +525,18 @@ class NestedUNet(nn.Module):
         self.conv2_1 = conv_block_nested(filters[2] + filters[3], filters[2], filters[2])
         self.conv3_1 = conv_block_nested(filters[3] + filters[4], filters[3], filters[3])
 
-        self.conv0_2 = conv_block_nested(filters[0]*2 + filters[1], filters[0], filters[0])
-        self.conv1_2 = conv_block_nested(filters[1]*2 + filters[2], filters[1], filters[1])
-        self.conv2_2 = conv_block_nested(filters[2]*2 + filters[3], filters[2], filters[2])
+        self.conv0_2 = conv_block_nested(filters[0] * 2 + filters[1], filters[0], filters[0])
+        self.conv1_2 = conv_block_nested(filters[1] * 2 + filters[2], filters[1], filters[1])
+        self.conv2_2 = conv_block_nested(filters[2] * 2 + filters[3], filters[2], filters[2])
 
-        self.conv0_3 = conv_block_nested(filters[0]*3 + filters[1], filters[0], filters[0])
-        self.conv1_3 = conv_block_nested(filters[1]*3 + filters[2], filters[1], filters[1])
+        self.conv0_3 = conv_block_nested(filters[0] * 3 + filters[1], filters[0], filters[0])
+        self.conv1_3 = conv_block_nested(filters[1] * 3 + filters[2], filters[1], filters[1])
 
-        self.conv0_4 = conv_block_nested(filters[0]*4 + filters[1], filters[0], filters[0])
+        self.conv0_4 = conv_block_nested(filters[0] * 4 + filters[1], filters[0], filters[0])
 
         self.final = nn.Conv2d(filters[0], out_ch, kernel_size=1)
 
-
     def forward(self, x):
-        
         x0_0 = self.conv0_0(x)
         x1_0 = self.conv1_0(self.pool(x0_0))
         x0_1 = self.conv0_1(torch.cat([x0_0, self.Up(x1_0)], 1))
@@ -543,8 +559,9 @@ class NestedUNet(nn.Module):
         output = self.final(x0_4)
         return output
 
-#Dictioary Unet
-#if required for getting the filters and model parameters for each step 
+
+# Dictioary Unet
+# if required for getting the filters and model parameters for each step
 
 class ConvolutionBlock(nn.Module):
     """Convolution block"""
@@ -642,4 +659,3 @@ class Unet_dict(nn.Module):
         u1 = F.relu(self.expansive_1(u2, c11))
         u0 = F.relu(self.expansive_0(u1, c00))
         return F.softmax(self.output(u0), dim=1)
-
