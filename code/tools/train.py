@@ -1,5 +1,5 @@
 from torch.utils.data.dataloader import DataLoader
-from utils import evaluate_model, LandDataset
+from utils import evaluate_model, LandDataset, adjust_learning_rate
 from model import build_model
 import torch
 from torch import nn
@@ -92,7 +92,6 @@ def train_main(cfg):
                               input_channel=dataset_cfg.input_channel,
                               transform=dataset_cfg.val_transform)
 
-
     # 构建dataloader
     train_dataloader = DataLoader(train_dataset, batch_size=train_cfg.batch_size, shuffle=True,
                                   num_workers=train_cfg.num_workers)
@@ -102,6 +101,7 @@ def train_main(cfg):
 
     # 定义优化器
     optimizer_cfg = train_cfg.optimizer_cfg
+    lr_scheduler_cfg = train_cfg.lr_scheduler_cfg
     if optimizer_cfg.type == 'adam':
         optimizer = optim.Adam(params=model.parameters(),
                                lr=optimizer_cfg.lr,
@@ -133,6 +133,8 @@ def train_main(cfg):
     train_loss = 10  # 设置一个初始值
     logger.info('开始在{}上训练{}模型...'.format(device, model_cfg.type))
     for epoch in range(train_cfg.num_epochs):
+        if lr_scheduler_cfg:
+            adjust_learning_rate(lr_scheduler_cfg, optimizer, float(epoch) / train_cfg.num_epochs, optimizer_cfg.lr)
         print()
         print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         start_time = time.time()
@@ -176,4 +178,4 @@ def train_main(cfg):
         out_str = "第{}轮训练完成，耗时{}，\n训练集上的loss={:.6f}；\n验证集上的loss={:.4f}，mIoU={:.6f}\n最好的结果是第{}轮，mIoU={:.6f}" \
             .format(epoch, time_str, train_loss, val_loss, val_miou, best_epoch, best_miou)
         print(out_str)
-        logger.info(out_str)
+        logger.info(out_str + '\n')
