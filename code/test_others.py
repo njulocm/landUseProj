@@ -1,4 +1,4 @@
-from model import U_Net, AttU_Net, NestedUNet
+from model import U_Net, AttU_Net, NestedUNet, UnetCRF
 import torch
 import torch.nn as nn
 
@@ -14,6 +14,11 @@ from torch import randperm
 from torchvision import transforms as T
 import numpy as np
 import utils.transforms_DL as T_DL
+
+from model.crfasrnn.crfasrnn_model import CrfRnnNet
+
+
+
 
 # train_mean = [0, 0, 0, 0]
 # train_std = [1, 1, 1, 1]
@@ -33,6 +38,8 @@ import utils.transforms_DL as T_DL
 # img2 = img1.numpy()
 # label2 = label1.numpy()
 
-
+data = torch.ones((64, 4, 256, 256))
+model = UnetCRF(in_ch=4, out_ch=10, num_iterations=10, crf_init_params=None)
+pred = model.forward(data)
 
 print('end')
