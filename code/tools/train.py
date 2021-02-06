@@ -1,6 +1,11 @@
 from torch.utils.data.dataloader import DataLoader
 from utils import evaluate_model, LandDataset, adjust_learning_rate
 from model import build_model
+#from .loss import *
+from pytorch_toolbelt import losses as L
+
+from .losses import DiceLoss,FocalLoss,SoftCrossEntropyLoss
+
 import torch
 from torch import nn
 from torch.utils.data import random_split, DataLoader
@@ -9,7 +14,6 @@ import time
 import os
 import logging
 from tqdm import tqdm
-
 
 def train_epoch(model, optimizer, loss_func, dataloader, device):
     '''
@@ -115,7 +119,11 @@ def train_main(cfg):
         raise Exception('没有该优化器！')
 
     # 定义损失函数
-    loss_func = nn.CrossEntropyLoss().to(device)
+    DiceLoss_fn = DiceLoss(mode='multiclass')
+    SoftCrossEntropy_fn = SoftCrossEntropyLoss(smooth_factor=0.1)
+    loss_func = L.JointLoss(first=DiceLoss_fn, second=SoftCrossEntropy_fn,
+                            first_weight=0.5, second_weight=0.5).cuda()
+
 
     # 创建保存模型的文件夹
     check_point_dir = '/'.join(model_cfg.check_point_file.split('/')[:-1])
