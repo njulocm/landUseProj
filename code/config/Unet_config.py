@@ -12,10 +12,14 @@ dataset_cfg = dict(
 )
 
 model_cfg = dict(
-    type='Unet',
-    input_channel=4,
-    num_classes=num_classes,
-    check_point_file=root_dir + '/code/checkpoint/Unet/Unet_model.pth'
+    # type='Unet',
+    # input_channel=4,
+    # num_classes=num_classes,
+    # check_point_file=root_dir + '/code/checkpoint/Unet/Unet_model.pth'
+
+    # 使用已训练的模型
+    type='CheckPoint',
+    check_point_file=root_dir + '/code/checkpoint/Unet/Unet_model.pth',
 )
 
 train_cfg = dict(
