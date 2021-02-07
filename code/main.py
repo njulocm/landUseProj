@@ -1,9 +1,7 @@
 import sys
-from utils import LandDataset, Config, evaluate_model
+from utils import Config
 from tools import train_main, test_main
 
-# from .utils import LandDataset, Config, evaluate_model
-# from .tools import train_main, test_main
 
 
 if __name__ == '__main__':
@@ -22,10 +20,6 @@ if __name__ == '__main__':
     if mode == 'test':
         test_main(cfg)
 
-    # model_best = torch.load('/home/cm/landUseProj/code/checkpoint/fcn_model_65.pt').to(cfg.device)
-    # loss_func = nn.CrossEntropyLoss().to(cfg.device)
-    # result = val_performance = evaluate_model(model, val_dataset, loss_func, cfg.device,
-    #                                           cfg.num_classes, cfg.train_cfg.num_workers)
 
     print('end')
     print("this is a test")

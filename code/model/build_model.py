@@ -1,5 +1,8 @@
 from .FCN import VGGNet, FCN
-from .Unet import U_Net
+from .Unet import U_Net, AttU_Net, NestedUNet, UnetCRF
+from .SegNet import SegNet
+from .PSPNet import PSPNet
+# from .pspnet import PSPNet
 import torch
 
 
@@ -17,8 +20,34 @@ def build_model(model_cfg):
     elif model_cfg.type == 'Unet':
         u_net = U_Net(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return u_net
-    elif model_cfg.type == 'CheckPoint': # 加载已有模型
-        model = torch.load(model_cfg.check_point_file)
+    elif model_cfg.type == 'UnetCRF':
+        unetCRF = UnetCRF(in_ch=model_cfg.input_channel,
+                          out_ch=model_cfg.num_classes,
+                          num_iterations=model_cfg.num_iterations,
+                          crf_init_params=model_cfg.crf_init_params)
+        return unetCRF
+    elif model_cfg.type == 'AttUnet':
+        attUnet = AttU_Net(img_ch=model_cfg.input_channel, output_ch=model_cfg.num_classes)
+        return attUnet
+    elif model_cfg.type == 'NestedUnet':
+        nestedUnet = NestedUNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
+        return nestedUnet
+    elif model_cfg.type == 'SegNet':
+        segNet = SegNet(input_nbr=model_cfg.input_channel, label_nbr=model_cfg.num_classes)
+        return segNet
+    elif model_cfg.type == 'PSPNet':
+        psp_net = PSPNet(layers=model_cfg.layers,
+                         in_chans=model_cfg.input_channel,
+                         bins=model_cfg.bins,
+                         dropout=model_cfg.dropout,
+                         classes=model_cfg.num_classes,
+                         zoom_factor=model_cfg.zoom_factor,
+                         use_ppm=model_cfg.use_ppm,
+                         pretrained=model_cfg.pretrained)
+        return psp_net
+    elif model_cfg.type == 'CheckPoint':  # 加载已有模型
+        model = torch.load(model_cfg.check_point_file, map_location=model_cfg.device)
+        print("已加载模型" + model_cfg.check_point_file)
         return model
 
     else:
