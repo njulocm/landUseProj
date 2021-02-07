@@ -10,6 +10,13 @@
             </list>
           </settings>
         </remote-mappings>
+        <remote-mappings server-id="python@sftp://chiizhang@162.105.17.203:22/home/chiizhang/.conda/envs/zc_pytorch/bin/python3.7">
+          <settings>
+            <list>
+              <mapping local-root="$PROJECT_DIR$" remote-root="/home/chiizhang/TC_remote_sense" />
+            </list>
+          </settings>
+        </remote-mappings>
       </list>
     </list>
   </component>

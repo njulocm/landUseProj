@@ -1,6 +1,6 @@
 import sys
-from code.utils import LandDataset, Config, evaluate_model
-from code.tools import train_main, test_main
+from utils import LandDataset, Config, evaluate_model
+from tools import train_main, test_main
 
 # from .utils import LandDataset, Config, evaluate_model
 # from .tools import train_main, test_main
