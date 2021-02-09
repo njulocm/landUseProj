@@ -97,10 +97,10 @@ train_cfg = dict(
 test_cfg = dict(
     is_predict=True,  # 是否是预测分类结果
     is_evaluate=False,  # 是否评估模型，也就是计算mIoU
-    dataset='val_dataset',
+    dataset='test_dataset',
     batch_size=train_cfg['batch_size'],
     # batch_size=4,
     num_workers=train_cfg['num_workers'],
-    check_point_file=root_dir + '/code/checkpoint/DiceLoss/Unet_argument_model-epoch89.pth',
-    out_dir=root_dir + '/prediction_result/DiceLoss-89-0206',
+    check_point_file=root_dir + '/code/checkpoint/DL_SCE/Unet_argument_model-epoch99.pth',
+    out_dir=root_dir + '/prediction_result/DL_SCE-99-0207',
 )
