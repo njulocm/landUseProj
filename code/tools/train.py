@@ -1,9 +1,8 @@
 from torch.utils.data.dataloader import DataLoader
 from utils import evaluate_model, LandDataset, adjust_learning_rate
 from model import build_model
-#from .loss import *
-from pytorch_toolbelt import losses as L
 
+from pytorch_toolbelt import losses as L
 from .losses import DiceLoss,FocalLoss,SoftCrossEntropyLoss
 
 import torch
