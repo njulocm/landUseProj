@@ -4,6 +4,7 @@ from .SegNet import SegNet
 from .PSPNet import PSPNet
 from .deeplab.deeplab import DeepLabV3P
 from .HRNet import hrnetv2 as HRNet
+from .segmentation_models import SmpNet
 import torch
 
 
@@ -52,6 +53,9 @@ def build_model(model_cfg):
         hrnet = HRNet()
         # hrnet = HRNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return hrnet
+    elif model_cfg.type == 'SMP':
+        smpnet = SmpNet(encoder_name=model_cfg.backbone,encoder_weights=model_cfg.encoder_weights, in_channels=model_cfg.input_channel,n_class=model_cfg.num_classes)
+        return smpnet
     elif model_cfg.type == 'CheckPoint':  # 加载已有模型
         model = torch.load(model_cfg.check_point_file, map_location=model_cfg.device)
         print("已加载模型" + model_cfg.check_point_file)
