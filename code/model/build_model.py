@@ -21,11 +21,11 @@ def build_model(model_cfg):
     elif model_cfg.type == 'Unet':
         u_net = U_Net(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return u_net
-    elif model_cfg.type =='AttUnet':
+    elif model_cfg.type == 'AttUnet':
         attUnet = AttU_Net(img_ch=model_cfg.input_channel, output_ch=model_cfg.num_classes)
         return attUnet
     elif model_cfg.type == 'NestedUnet':
-        nestedUnet = NestedUNet(in_ch=model_cfg.input_channel,out_ch=model_cfg.num_classes)
+        nestedUnet = NestedUNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return nestedUnet
     elif model_cfg.type == 'SegNet':
         segNet = SegNet(input_nbr=model_cfg.input_channel, label_nbr=model_cfg.num_classes)
