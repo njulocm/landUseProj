@@ -3,9 +3,9 @@ import utils.transforms_DL as T_DL
 
 num_classes = 10
 input_channel = 3
-device = 'cuda:3'
+device = 'cuda:1'
 root_dir = '/home/cailinhao/landUseProj_master/landUseProj/'
-logfile = root_dir + '/code/log-smp_unetpp_pretrain-argu_color-0209.log'
+logfile = root_dir + '/code/log-smp_unetpp_pretrain-argu_color-0210.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
 train_std = [0.229, 0.224, 0.225, 0.25]
@@ -20,19 +20,19 @@ train_transform = T.Compose([
     T_DL.ToTensor_DL(),  # 转为tensor
     T_DL.RandomFlip_DL(p=prob),  # 概率p水平或者垂直翻转
     T_DL.RandomRotation_DL(p=prob),  # 概率p发生随机旋转(只会90，180，270)
-    T_DL.RandomColorJitter_DL(p=prob, brightness=1, contrast=1, saturation=1, hue=0.5),  # 概率p调整rgb
-    # T_DL.Normalized_DL(mean=train_mean[:input_channel if input_channel != 4 else -1], std=train_std[:input_channel if input_channel != 4 else -1]),  # 归一化
+    # T_DL.RandomColorJitter_DL(p=prob, brightness=1, contrast=1, saturation=1, hue=0.5),  # 概率p调整rgb
+    T_DL.Normalized_DL(mean=train_mean[:input_channel if input_channel != 4 else -1], std=train_std[:input_channel if input_channel != 4 else -1]),  # 归一化
 ])
 
 val_transform = T.Compose([
     T_DL.ToTensor_DL(),  # 转为tensor
-    # T_DL.Normalized_DL(mean=train_mean[:input_channel if input_channel != 4 else -1],
-    #                    std=train_std[:input_channel if input_channel != 4 else -1]),  # 归一化
+    T_DL.Normalized_DL(mean=train_mean[:input_channel if input_channel != 4 else -1],
+                       std=train_std[:input_channel if input_channel != 4 else -1]),  # 归一化
 ])
 
 test_transform = T.Compose([
     T.ToTensor(),
-    # T.Normalize(mean=test_mean[:input_channel if input_channel != 4 else -1], std=test_std[:input_channel if input_channel != 4 else -1]),
+    T.Normalize(mean=test_mean[:input_channel if input_channel != 4 else -1], std=test_std[:input_channel if input_channel != 4 else -1]),
 ])
 
 dataset_cfg = dict(
@@ -59,7 +59,7 @@ model_cfg = dict(
     input_channel=input_channel,
     num_classes=num_classes,
     pretrained=True,
-    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain-argu_color-0209/smp_unetpp_best.pth',
+    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain-argu_color-0210/smp_unetpp_best.pth',
 
     # type='AttUnet',
     # input_channel=4,
@@ -75,7 +75,7 @@ train_cfg = dict(
     num_workers=4,
     batch_size=8,
     num_epochs=50,
-    optimizer_cfg=dict(type='adamw', lr=0.01, momentum=0.9, weight_decay=5e-4),
+    optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),
     lr_scheduler_cfg=dict(policy='cos'),
     auto_save_epoch=5,  # 每隔几轮自动保存模型
     is_PSPNet=False  # 不是PSPNet都设为false
@@ -87,6 +87,6 @@ test_cfg = dict(
     dataset='test_dataset',
     batch_size=train_cfg['batch_size'],
     num_workers=train_cfg['num_workers'],
-    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain-argu_color-0209/smp_unetpp_best.pth',
-    out_dir=root_dir + '/prediction_result/smp_unetpp_pretrain-argu_color-0209/',
+    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain-argu_color-0210/smp_unetpp_best.pth',
+    out_dir=root_dir + '/prediction_result/smp_unetpp_pretrain-argu_color-0210/',
 )
