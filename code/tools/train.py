@@ -1,5 +1,5 @@
 from torch.utils.data.dataloader import DataLoader
-from utils import evaluate_model, LandDataset, adjust_learning_rate
+from utils import evaluate_model, evaluate_stage2_model, LandDataset, adjust_learning_rate
 from model import build_model
 
 from pytorch_toolbelt import losses as L
@@ -8,7 +8,9 @@ from .losses import DiceLoss, FocalLoss, SoftCrossEntropyLoss
 import torch
 from torch import nn
 from torch.utils.data import random_split, DataLoader
+from torch.autograd import Variable
 from torch import optim
+from torch.cuda.amp import autocast, GradScaler
 import time
 import os
 import logging
@@ -26,17 +28,64 @@ def train_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, de
     '''
     loss_list = []
     model.train()
+    scaler = GradScaler()
     for batch, item in tqdm(enumerate(dataloader)):
         X, label = item
-        X = X.to(device)
-        label = label.to(device)
-        Y = model(X)
-        loss = loss_func(Y, label)
-        loss_list.append(loss.cpu().item())
+        X = Variable(X.to(device))
+        label = Variable(label.to(device))
+        with autocast():
+            Y = model(X)
+            loss = loss_func(Y, label)
+            loss_list.append(loss.cpu().item())
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad()
+
+        if lr_scheduler is not None:
+            lr_scheduler.step(epoch + batch / dataloader.__len__())
+
+    return sum(loss_list) / len(loss_list)
+
+
+def train_stage2_epoch(model, model_2, optimizer, lr_scheduler, loss_func, dataloader, epoch, device):
+    '''
+    :param model:
+    :param optimizer:
+    :param loss_func:
+    :param dataloader:
+    :param device:
+    :return: 返回该轮训练的平均loss
+    '''
+    loss_list = []
+    model.train()
+    scaler = GradScaler()
+    model.eval()
+    model_2.train()
+    for batch, item in tqdm(enumerate(dataloader)):
+        X, label = item
+        X1 = X[:, :-1, :, :]
+        X2 = X[:, -1:, :, :]
+        X1 = Variable(X1.to(device))
+        X2 = Variable(X2.to(device))
+        label = Variable(label.to(device))
+        with autocast():
+            Y1 = model(X1)
+            Y1 = (torch.argmax(Y1, dim=1) + 1) / 10.0
+            Y1 = torch.unsqueeze(Y1, 1)
+
+            new_X = Variable(torch.cat((Y1, X2), 1))
+            Y2 = model_2(new_X)
+
+            loss = loss_func(Y2, label)
+            loss_list.append(loss.cpu().item())
+
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad()
+
         if lr_scheduler is not None:
             lr_scheduler.step(epoch + batch / dataloader.__len__())
 
@@ -106,6 +155,7 @@ def train_main(cfg):
 
     # 构建模型
     model = build_model(model_cfg).to(device)
+    # model = torch.nn.DataParallel(model)
 
     # 定义优化器
     optimizer_cfg = train_cfg.optimizer_cfg
@@ -115,7 +165,8 @@ def train_main(cfg):
                                lr=optimizer_cfg.lr,
                                weight_decay=optimizer_cfg.weight_decay)
     elif optimizer_cfg.type == 'adamw':
-        optimizer = optim.AdamW(model.parameters(), lr=optimizer_cfg.lr, weight_decay=optimizer_cfg.weight_decay)
+        optimizer = optim.AdamW(model.parameters(),
+                                lr=optimizer_cfg.lr, weight_decay=optimizer_cfg.weight_decay)
     elif optimizer_cfg.type == 'sgd':
         optimizer = optim.SGD(params=model.parameters(),
                               lr=optimizer_cfg.lr,
