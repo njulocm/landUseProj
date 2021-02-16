@@ -2,8 +2,8 @@ from torchvision import transforms as T
 import utils.transforms_DL as T_DL
 
 num_classes = 10
-device = 'cuda:2'
-root_dir = '/home/cm/landUseProj'
+device = 'cuda:1'
+root_dir = '/home/chiizhang/TC_remote_sense'
 logfile = root_dir + '/code/log/UnetCRF_argument_Color-0204.log'
 
 

@@ -9,7 +9,7 @@ if __name__ == '__main__':
     cfg_filename = sys.argv[1]  # 配置文件名
     mode = sys.argv[2]  # 运行模式，包括train和test
 
-    # 读取配置文件
+    # 读取配置文件gio
     cfg = Config.fromfile('config/' + cfg_filename)
 
     # 训练模型
