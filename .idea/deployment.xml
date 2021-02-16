@@ -1,18 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="landUseProj">
+  <component name="PublishConfigData" autoUpload="Always">
     <serverData>
-      <paths name="landUseProj">
+      <paths name="chiizhang@162.105.17.203:22">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/cm/landUseProj" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/home/chiizhang/TC_remote_sense" local="$PROJECT_DIR$" web="/" />
           </mappings>
-          <excludedPaths>
-            <excludedPath path="/home/cm/landUseProj/code/checkpoint" />
-            <excludedPath local="true" path="$PROJECT_DIR$/tcdata" />
-            <excludedPath local="true" path="$PROJECT_DIR$/prediction_result" />
-            <excludedPath local="true" path="$PROJECT_DIR$/user_data" />
-          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="zhangchi@162.105.17.162:22">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="zhangchi@162.105.17.162:22 (1)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
         </serverdata>
       </paths>
     </serverData>
