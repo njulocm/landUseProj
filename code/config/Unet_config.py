@@ -2,10 +2,13 @@ from torchvision import transforms as T
 import utils.transforms_DL as T_DL
 
 num_classes = 10
+
 device = 'cuda:1'
 root_dir = '/home/chiizhang/TC_remote_sense'
 logfile = root_dir + '/code/log/UnetCRF_argument_Color-0204.log'
-
+device = 'cuda:2'
+root_dir = '/home/yujian/landUseProj'
+logfile = root_dir + '/code/log/Unet_argument_BL_SCE-0206.log'
 
 
 # --norm1参数--
@@ -70,9 +73,12 @@ model_cfg = dict(
     type='UnetCRF',
     input_channel=dataset_cfg['input_channel'],
     num_classes=num_classes,
+
     check_point_file=root_dir + '/code/checkpoint/UnetCRF_argument_Color/Unet_argument_Color_model.pth',
     num_iterations=10,
     crf_init_params=None,
+    # check_point_file=root_dir + '/code/checkpoint/Unet_argument_Color_norm1/Unet_argument_Color_norm1_model.pth',
+    # check_point_file=root_dir + '/code/checkpoint/DL_SCE/Unet_argument_model.pth',
 
     # type='AttUnet',
     # input_channel=4,
@@ -89,8 +95,10 @@ train_cfg = dict(
     batch_size=16,
     num_epochs=100,
     optimizer_cfg=dict(type="adam", lr=0.01, weight_decay=0),
+    lr_scheduler_cfg=dict(policy='poly', power=0.9, min_lr=1e-4),
     # optimizer_cfg=dict(type="sgd", lr=0.01, momentum=0.9,weight_decay=0.0001),
     auto_save_epoch=5,  # 每隔几轮自动保存模型
+
     is_PSPNet=False  # 不是PSPNet都设为false
 )
 
@@ -103,4 +111,8 @@ test_cfg = dict(
     num_workers=train_cfg['num_workers'],
     check_point_file=root_dir + '/code/checkpoint/Unet_argument_Color_norm1/Unet_argument_Color_norm1_model-epoch149.pth',
     out_dir=root_dir + '/prediction_result/Unet_argument_Color_norm1_test_out-epoch149-0204',
+
+    # check_point_file=root_dir + '/code/checkpoint/DL_SCE/Unet_argument_model-epoch99.pth',
+    # out_dir=root_dir + '/prediction_result/DL_SCE-99-0207',
+
 )
