@@ -3,9 +3,9 @@ import utils.transforms_DL as T_DL
 
 num_classes = 10
 input_channel = 3
-device = 'cuda:1'
-root_dir = '/home/cailinhao/landUseProj_master/landUseProj/'
-logfile = root_dir + '/code/log-smp_unetpp_pretrain-argu_color-0210.log'
+device = 'cpu' #
+root_dir = '/home/chiizhang/TC_remote_sense'
+logfile = root_dir + '/code/logdir/log-smp_unetpp_pretrain-argu_crf_color-0217.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
 train_std = [0.229, 0.224, 0.225, 0.25]
@@ -59,7 +59,7 @@ model_cfg = dict(
     input_channel=input_channel,
     num_classes=num_classes,
     pretrained=True,
-    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain-argu_color-0210/smp_unetpp_best.pth',
+    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_best.pth',
 
     # type='AttUnet',
     # input_channel=4,
@@ -84,9 +84,10 @@ train_cfg = dict(
 test_cfg = dict(
     is_predict=True,  # 是否是预测分类结果
     is_evaluate=False,  # 是否评估模型，也就是计算mIoU
+    is_crf =True,
     dataset='test_dataset',
     batch_size=train_cfg['batch_size'],
     num_workers=train_cfg['num_workers'],
-    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain-argu_color-0210/smp_unetpp_best.pth',
-    out_dir=root_dir + '/prediction_result/smp_unetpp_pretrain-argu_color-0210/',
+    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_best.pth',
+    out_dir=root_dir + '/prediction_result/smp_unetpp_pretrain-argu_color-0217/',
 )

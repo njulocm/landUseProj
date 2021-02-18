@@ -38,6 +38,8 @@ class LandDataset(Dataset):
         '''获得index序号的样本'''
         filename = self.DIR + '/' + self.index_list[index]  # 不含后缀
         data = cv2.imread(filename + '.tif', cv2.IMREAD_UNCHANGED)[..., :self.input_channel]
+
+        data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
         if self.mode == 'test':
             label = 0  # 测试集没有label，随便给一个
             data = self.transform(data)

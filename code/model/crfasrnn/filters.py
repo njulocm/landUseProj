@@ -70,7 +70,7 @@ def _spatial_features(image, sigma):
     xx = x.repeat([h, 1]) / sigma
 
     y = torch.arange(
-        start=0, end=h, dtype=torch.float32, device=torch.device("cpu")
+        start=0, end=h, dtype=torch.float32, device=_CPU
     ).view(-1, 1)
     yy = y.repeat([1, w]) / sigma
 
@@ -143,5 +143,5 @@ class BilateralFilter(AbstractFilter):
         xy = _spatial_features(
             image, self.alpha
         )  # TODO Possible optimisation, was calculated in the spatial kernel
-        rgb = (image / float(self.beta)).permute(1, 2, 0)  # Channel last order
+        rgb = (image / float(self.beta)).permute(1, 2, 0).to(_CPU)  # Channel last order
         return torch.cat([xy, rgb], dim=2)
