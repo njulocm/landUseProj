@@ -268,23 +268,16 @@ def train_main(cfg):
                                       dataloader=train_dataloader,
                                       device=device)
         else:  # 普通的训练方式
-            # train_loss, train_cls_loss = train_cls_epoch(model, optimizer, lr_scheduler, loss_func, loss_cls_func,
-            #                                              train_dataloader,
-            #                                              epoch, device)
-            # train_loss = train_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
-            train_loss = train_unet3p_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
+            train_loss = train_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
+            # train_loss = train_unet3p_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
             lr_scheduler.step()
 
         #
         # 在训练集上评估模型
-        val_loss, val_miou = evaluate_unet3p_model(model, val_dataset, loss_func, device,
-                                            cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
-        # val_loss, val_miou = evaluate_model(model, val_dataset, loss_func, device,
+        # val_loss, val_miou = evaluate_unet3p_model(model, val_dataset, loss_func, device,
         #                                     cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
-        # val_loss, val_cls_loss, val_miou = evaluate_cls_model(model, val_dataset, loss_func, loss_cls_func, device,
-        #                                                       cfg.num_classes, train_cfg.num_workers,
-        #                                                       batch_size=train_cfg.batch_size)
-
+        val_loss, val_miou = evaluate_model(model, val_dataset, loss_func, device,
+                                            cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
 
 
         train_loss_list.append(train_loss)
