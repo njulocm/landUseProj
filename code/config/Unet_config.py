@@ -4,7 +4,7 @@ import utils.transforms_DL as T_DL
 num_classes = 10
 device = 'cuda:2'
 root_dir = '/home/cm/landUseProj'
-logfile = root_dir + '/code/log/UnetCRF_argument_Color-0204.log'
+logfile = root_dir + '/code/log/Unet_argument_Color_p2-0205.log'
 
 
 
@@ -29,7 +29,7 @@ norm2_dict = dict(
 # 注意：train和val涉及到label，需要用带_DL后缀的transform
 #      test不涉及label，用原来的transform
 # 建议：都不用normalize
-prob = 0.25
+prob = 0.5
 norm_dict = norm1_dict
 train_transform = T.Compose([
     T_DL.ToTensor_DL(),  # 转为tensor
@@ -70,9 +70,10 @@ model_cfg = dict(
     type='UnetCRF',
     input_channel=dataset_cfg['input_channel'],
     num_classes=num_classes,
-    check_point_file=root_dir + '/code/checkpoint/UnetCRF_argument_Color/Unet_argument_Color_model.pth',
+    check_point_file=root_dir + '/code/checkpoint/Unet_argument_Color_p2/Unet_argument_Color_p2_model.pth',
     num_iterations=10,
     crf_init_params=None,
+    device=device,
 
     # type='AttUnet',
     # input_channel=4,
@@ -101,6 +102,6 @@ test_cfg = dict(
     batch_size=train_cfg['batch_size'],
     # batch_size=4,
     num_workers=train_cfg['num_workers'],
-    check_point_file=root_dir + '/code/checkpoint/Unet_argument_Color_norm1/Unet_argument_Color_norm1_model-epoch149.pth',
-    out_dir=root_dir + '/prediction_result/Unet_argument_Color_norm1_test_out-epoch149-0204',
+    check_point_file=root_dir + '/code/checkpoint/Unet_argument_Color_p2/Unet_argument_Color_p2_model-epoch99.pth',
+    out_dir=root_dir + '/prediction_result/Unet_argument_Color_p2_test_out-epoch99-0207',
 )
