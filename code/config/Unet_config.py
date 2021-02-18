@@ -67,13 +67,11 @@ dataset_cfg = dict(
 )
 
 model_cfg = dict(
-    type='UnetCRF',
+    type='Unet',
     input_channel=dataset_cfg['input_channel'],
     num_classes=num_classes,
-    check_point_file=root_dir + '/code/checkpoint/UnetCRF_argument_Color/Unet_argument_Color_model.pth',
-    num_iterations=10,
-    crf_init_params=None,
-
+    # check_point_file=root_dir + '/code/checkpoint/Unet_argument_Color_norm1/Unet_argument_Color_norm1_model.pth',
+    check_point_file=root_dir + '/code/checkpoint/test/Unet_argument_Color_norm1_model.pth',
     # type='AttUnet',
     # input_channel=4,
     # num_classes=num_classes,
@@ -87,7 +85,7 @@ model_cfg = dict(
 train_cfg = dict(
     num_workers=4,
     batch_size=16,
-    num_epochs=100,
+    num_epochs=150,
     optimizer_cfg=dict(type="adam", lr=0.01, weight_decay=0),
     # optimizer_cfg=dict(type="sgd", lr=0.01, momentum=0.9,weight_decay=0.0001),
     auto_save_epoch=5,  # 每隔几轮自动保存模型
@@ -101,6 +99,6 @@ test_cfg = dict(
     batch_size=train_cfg['batch_size'],
     # batch_size=4,
     num_workers=train_cfg['num_workers'],
-    check_point_file=root_dir + '/code/checkpoint/Unet_argument_Color_norm1/Unet_argument_Color_norm1_model-epoch149.pth',
-    out_dir=root_dir + '/prediction_result/Unet_argument_Color_norm1_test_out-epoch149-0204',
+    check_point_file=root_dir + '/code/checkpoint/Unet_argument_Color_norm1/Unet_argument_Color_norm1_model-epoch94.pth',
+    out_dir=root_dir + '/prediction_result/Unet_argument_Color_norm1_test_out-epoch94-0204',
 )

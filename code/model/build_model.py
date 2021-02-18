@@ -2,7 +2,9 @@ from .FCN import VGGNet, FCN
 from .Unet import U_Net, AttU_Net, NestedUNet, UnetCRF
 from .SegNet import SegNet
 from .PSPNet import PSPNet
-# from .pspnet import PSPNet
+from .deeplab.deeplab import DeepLabV3P
+from .HRNet import hrnetv2 as HRNet
+from .segmentation_models import SmpNet
 import torch
 
 
@@ -20,12 +22,6 @@ def build_model(model_cfg):
     elif model_cfg.type == 'Unet':
         u_net = U_Net(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return u_net
-    elif model_cfg.type == 'UnetCRF':
-        unetCRF = UnetCRF(in_ch=model_cfg.input_channel,
-                          out_ch=model_cfg.num_classes,
-                          num_iterations=model_cfg.num_iterations,
-                          crf_init_params=model_cfg.crf_init_params)
-        return unetCRF
     elif model_cfg.type == 'AttUnet':
         attUnet = AttU_Net(img_ch=model_cfg.input_channel, output_ch=model_cfg.num_classes)
         return attUnet

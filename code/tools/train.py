@@ -1,6 +1,10 @@
 from torch.utils.data.dataloader import DataLoader
-from utils import evaluate_model, LandDataset
+from utils import evaluate_model, LandDataset, adjust_learning_rate
 from model import build_model
+
+from pytorch_toolbelt import losses as L
+from .losses import DiceLoss, FocalLoss, SoftCrossEntropyLoss
+
 import torch
 from torch import nn
 from torch.utils.data import random_split, DataLoader
@@ -11,7 +15,7 @@ import logging
 from tqdm import tqdm
 
 
-def train_epoch(model, optimizer, loss_func, dataloader, device):
+def train_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, device):
     '''
     :param model:
     :param optimizer:
@@ -26,12 +30,16 @@ def train_epoch(model, optimizer, loss_func, dataloader, device):
         X, label = item
         X = X.to(device)
         label = label.to(device)
-        optimizer.zero_grad()
         Y = model(X)
         loss = loss_func(Y, label)
+        loss_list.append(loss.cpu().item())
+
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        loss_list.append(loss.cpu().item())
+        if lr_scheduler is not None:
+            lr_scheduler.step(epoch + batch / dataloader.__len__())
+
     return sum(loss_list) / len(loss_list)
 
 
@@ -101,10 +109,13 @@ def train_main(cfg):
 
     # 定义优化器
     optimizer_cfg = train_cfg.optimizer_cfg
+    lr_scheduler_cfg = train_cfg.lr_scheduler_cfg
     if optimizer_cfg.type == 'adam':
         optimizer = optim.Adam(params=model.parameters(),
                                lr=optimizer_cfg.lr,
                                weight_decay=optimizer_cfg.weight_decay)
+    elif optimizer_cfg.type == 'adamw':
+        optimizer = optim.AdamW(model.parameters(), lr=optimizer_cfg.lr, weight_decay=optimizer_cfg.weight_decay)
     elif optimizer_cfg.type == 'sgd':
         optimizer = optim.SGD(params=model.parameters(),
                               lr=optimizer_cfg.lr,
@@ -113,8 +124,17 @@ def train_main(cfg):
     else:
         raise Exception('没有该优化器！')
 
+    if lr_scheduler_cfg.policy == 'cos':
+        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=3, T_mult=2, eta_min=1e-5,
+                                                                            last_epoch=-1)
+    else:
+        lr_scheduler = None
+
     # 定义损失函数
-    loss_func = nn.CrossEntropyLoss().to(device)
+    DiceLoss_fn = DiceLoss(mode='multiclass')
+    SoftCrossEntropy_fn = SoftCrossEntropyLoss(smooth_factor=0.1)
+    loss_func = L.JointLoss(first=DiceLoss_fn, second=SoftCrossEntropy_fn,
+                            first_weight=0.5, second_weight=0.5).cuda()
 
     # 创建保存模型的文件夹
     check_point_dir = '/'.join(model_cfg.check_point_file.split('/')[:-1])
@@ -146,7 +166,7 @@ def train_main(cfg):
                                       dataloader=train_dataloader,
                                       device=device)
         else:  # 普通的训练方式
-            train_loss = train_epoch(model, optimizer, loss_func, train_dataloader, device)
+            train_loss = train_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
 
         #
         # 在训练集上评估模型
