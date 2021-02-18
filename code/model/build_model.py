@@ -5,6 +5,7 @@ from .PSPNet import PSPNet
 from .deeplab.deeplab import DeepLabV3P
 from .HRNet import hrnetv2 as HRNet
 from .segmentation_models import SmpNet
+from .Unet3p import UNet3Plus_DeepSup
 import torch
 
 
@@ -25,6 +26,9 @@ def build_model(model_cfg):
     elif model_cfg.type == 'AttUnet':
         attUnet = AttU_Net(img_ch=model_cfg.input_channel, output_ch=model_cfg.num_classes)
         return attUnet
+    elif model_cfg.type == 'Unet3p':
+        u_net3p = UNet3Plus_DeepSup(img_ch=model_cfg.input_channel, output_ch=model_cfg.num_classes)
+        return u_net3p
     elif model_cfg.type == 'NestedUnet':
         nestedUnet = NestedUNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return nestedUnet

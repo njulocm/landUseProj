@@ -3,9 +3,9 @@ import utils.transforms_DL as T_DL
 
 num_classes = 10
 input_channel = 4
-device = 'cuda:0'
+device = 'cuda:1'
 root_dir = '/home/cailinhao/landUseProj_master/landUseProj/'
-logfile = root_dir + '/code/log/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0218.log'
+logfile = root_dir + '/code/log/smp_unet3p_nopretrain_chnl4-rgb_argu_discolor-0218.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
 train_std = [0.229, 0.224, 0.225, 0.25]
@@ -53,12 +53,9 @@ dataset_cfg = dict(
 )
 
 model_cfg = dict(
-    type='SMP',
-    backbone='efficientnet-b7',
-    encoder_weights='imagenet',
+    type='Unet3p',
     input_channel=input_channel,
     num_classes=num_classes,
-    pretrained=True,
     check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0218/smp_unetpp_best.pth',
 
     # type='AttUnet',
@@ -75,8 +72,10 @@ train_cfg = dict(
     num_workers=6,
     batch_size=8,
     num_epochs=50,
-    optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),
+    optimizer_cfg=dict(type='adamw', lr=0.01, momentum=0.9, weight_decay=5e-4),
     lr_scheduler_cfg=dict(policy='cos'),
+    # optimizer_cfg=dict(type='RMS', lr=0.1, momentum=0.9, weight_decay=1e-8),
+    # lr_scheduler_cfg=dict(policy='LambdaLR'),
     auto_save_epoch=5,  # 每隔几轮自动保存模型
     is_PSPNet=False,  # 不是PSPNet都设为false
 )
