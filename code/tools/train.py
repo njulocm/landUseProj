@@ -1,5 +1,5 @@
 from torch.utils.data.dataloader import DataLoader
-from utils import evaluate_model, LandDataset, adjust_learning_rate
+from utils import evaluate_model, evaluate_cls_model,evaluate_unet3p_model, LandDataset, adjust_learning_rate
 from model import build_model
 
 from pytorch_toolbelt import losses as L
@@ -8,11 +8,51 @@ from .losses import DiceLoss, FocalLoss, SoftCrossEntropyLoss
 import torch
 from torch import nn
 from torch.utils.data import random_split, DataLoader
+from torch.autograd import Variable
 from torch import optim
+from torch.cuda.amp import autocast, GradScaler
 import time
 import os
 import logging
 from tqdm import tqdm
+
+
+def train_unet3p_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, device):
+    '''
+    :param model:
+    :param optimizer:
+    :param loss_func:
+    :param dataloader:
+    :param device:
+    :return: 返回该轮训练的平均loss
+    '''
+    loss_list = []
+    model.train()
+    # scaler = GradScaler()
+    for batch, item in tqdm(enumerate(dataloader)):
+        X, label = item
+        X = Variable(X.to(device))
+        label = Variable(label.to(device))
+        with autocast():
+            Y = model(X)
+
+            loss = torch.tensor(0, dtype=torch.float32).to(device)
+            for pred in Y:
+                loss += loss_func(pred, label)
+            # loss = loss_func(Y, label)
+            loss_list.append(loss.cpu().item())
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        # if lr_scheduler is not None:
+        #     lr_scheduler.step(epoch + batch / dataloader.__len__())
+
+        # if lr_scheduler is not None:
+        #     lr_scheduler.step(epoch + batch / dataloader.__len__())
+
+    return sum(loss_list) / 5.0 / len(loss_list)
 
 
 def train_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, device):
@@ -26,17 +66,68 @@ def train_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, de
     '''
     loss_list = []
     model.train()
+    # scaler = GradScaler()
     for batch, item in tqdm(enumerate(dataloader)):
         X, label = item
-        X = X.to(device)
-        label = label.to(device)
-        Y = model(X)
-        loss = loss_func(Y, label)
-        loss_list.append(loss.cpu().item())
+        X = Variable(X.to(device))
+        label = Variable(label.to(device))
+        with autocast():
+            Y = model(X)
+            loss = loss_func(Y, label)
+            loss_list.append(loss.cpu().item())
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            # scaler.scale(loss).backward()
+            # scaler.step(optimizer)
+            # scaler.update()
+            # optimizer.zero_grad()
+
+        if lr_scheduler is not None:
+            lr_scheduler.step(epoch + batch / dataloader.__len__())
+
+    return sum(loss_list) / len(loss_list)
+
+
+def train_stage2_epoch(model, model_2, optimizer, lr_scheduler, loss_func, dataloader, epoch, device):
+    '''
+    :param model:
+    :param optimizer:
+    :param loss_func:
+    :param dataloader:
+    :param device:
+    :return: 返回该轮训练的平均loss
+    '''
+    loss_list = []
+    model.train()
+    scaler = GradScaler()
+    model.eval()
+    model_2.train()
+    for batch, item in tqdm(enumerate(dataloader)):
+        X, label = item
+        X1 = X[:, :-1, :, :]
+        X2 = X[:, -1:, :, :]
+        X1 = Variable(X1.to(device))
+        X2 = Variable(X2.to(device))
+        label = Variable(label.to(device))
+        with autocast():
+            Y1 = model(X1)
+            Y1 = (torch.argmax(Y1, dim=1) + 1) / 10.0
+            Y1 = torch.unsqueeze(Y1, 1)
+
+            new_X = Variable(torch.cat((Y1, X2), 1))
+            Y2 = model_2(new_X)
+
+            loss = loss_func(Y2, label)
+            loss_list.append(loss.cpu().item())
+
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad()
+
         if lr_scheduler is not None:
             lr_scheduler.step(epoch + batch / dataloader.__len__())
 
@@ -106,6 +197,7 @@ def train_main(cfg):
 
     # 构建模型
     model = build_model(model_cfg).to(device)
+    # model = torch.nn.DataParallel(model)
 
     # 定义优化器
     optimizer_cfg = train_cfg.optimizer_cfg
@@ -115,18 +207,27 @@ def train_main(cfg):
                                lr=optimizer_cfg.lr,
                                weight_decay=optimizer_cfg.weight_decay)
     elif optimizer_cfg.type == 'adamw':
-        optimizer = optim.AdamW(model.parameters(), lr=optimizer_cfg.lr, weight_decay=optimizer_cfg.weight_decay)
+        optimizer = optim.AdamW(model.parameters(),
+                                lr=optimizer_cfg.lr, weight_decay=optimizer_cfg.weight_decay)
     elif optimizer_cfg.type == 'sgd':
         optimizer = optim.SGD(params=model.parameters(),
                               lr=optimizer_cfg.lr,
                               momentum=optimizer_cfg.momentum,
                               weight_decay=optimizer_cfg.weight_decay)
+    elif optimizer_cfg.type == 'RMS':
+        optimizer = optim.RMSprop(params=model.parameters(), lr=optimizer_cfg.lr,
+                                  weight_decay=optimizer_cfg.weight_decay)
     else:
         raise Exception('没有该优化器！')
 
     if lr_scheduler_cfg.policy == 'cos':
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=3, T_mult=2, eta_min=1e-5,
                                                                             last_epoch=-1)
+    elif lr_scheduler_cfg.policy == 'LambdaLR':
+        import math
+        lf = lambda x: (((1 + math.cos(x * math.pi / train_cfg.num_epochs)) / 2) ** 1.0) * 0.95 + 0.05  # cosine
+        lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
+        lr_scheduler.last_epoch = 0
     else:
         lr_scheduler = None
 
@@ -135,6 +236,7 @@ def train_main(cfg):
     SoftCrossEntropy_fn = SoftCrossEntropyLoss(smooth_factor=0.1)
     loss_func = L.JointLoss(first=DiceLoss_fn, second=SoftCrossEntropy_fn,
                             first_weight=0.5, second_weight=0.5).cuda()
+    # loss_cls_func = torch.nn.BCEWithLogitsLoss()
 
     # 创建保存模型的文件夹
     check_point_dir = '/'.join(model_cfg.check_point_file.split('/')[:-1])
@@ -167,11 +269,17 @@ def train_main(cfg):
                                       device=device)
         else:  # 普通的训练方式
             train_loss = train_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
+            # train_loss = train_unet3p_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
+            lr_scheduler.step()
 
         #
         # 在训练集上评估模型
+        # val_loss, val_miou = evaluate_unet3p_model(model, val_dataset, loss_func, device,
+        #                                     cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
         val_loss, val_miou = evaluate_model(model, val_dataset, loss_func, device,
                                             cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
+
+
         train_loss_list.append(train_loss)
         val_loss_list.append(val_loss)
 
@@ -194,5 +302,8 @@ def train_main(cfg):
         print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         out_str = "第{}轮训练完成，耗时{}，\n训练集上的loss={:.6f}；\n验证集上的loss={:.4f}，mIoU={:.6f}\n最好的结果是第{}轮，mIoU={:.6f}" \
             .format(epoch, time_str, train_loss, val_loss, val_miou, best_epoch, best_miou)
+        # out_str = "第{}轮训练完成，耗时{}，\n训练集上的segm_loss={:.6f},cls_loss{:.6f}\n验证集上的segm_loss={:.4f},cls_loss={:.4f},mIoU={:.6f}\n最好的结果是第{}轮，mIoU={:.6f}" \
+        #     .format(epoch, time_str, train_loss, train_cls_loss, val_loss, val_cls_loss, val_miou, best_epoch,
+        #             best_miou)
         print(out_str)
         logger.info(out_str + '\n')
