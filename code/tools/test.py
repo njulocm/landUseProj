@@ -73,19 +73,8 @@ def predict(model, dataset, out_dir, device, batch_size=128):
         for batch, item in tqdm(enumerate(dataloader)):
             data, _ = item
 
-            batchsize = data.shape[0]
-            classes = 10
-            hw = data.shape[2]
-
             data = data.to(device)
-            out,y_cls = model(data)
-
-            Y_noclass_mask = torch.ones(batchsize * classes, hw, hw).to(device)
-            Y_noclass_index = (y_cls.reshape(-1) <= 0).nonzero(as_tuple=False).squeeze()
-            Y_noclass_mask.index_fill_(0, Y_noclass_index, 0)
-            Y_noclass_mask = Y_noclass_mask.reshape(batchsize, classes, hw, hw)
-
-            out = out * Y_noclass_mask
+            out = model(data)
 
             # score1 = model(data)
             #
