@@ -1,5 +1,6 @@
 from torch.utils.data.dataloader import DataLoader
-from utils import evaluate_model, evaluate_cls_model,evaluate_unet3p_model, LandDataset, adjust_learning_rate
+from utils import evaluate_model, evaluate_cls_model, evaluate_unet3p_model, LandDataset, adjust_learning_rate, \
+    moving_average, fix_bn, bn_update
 from model import build_model
 
 from pytorch_toolbelt import losses as L
@@ -71,19 +72,27 @@ def train_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, de
         X, label = item
         X = Variable(X.to(device))
         label = Variable(label.to(device))
-        with autocast():
-            Y = model(X)
-            loss = loss_func(Y, label)
-            loss_list.append(loss.cpu().item())
+        # with autocast():
+        #     Y = model(X)
+        #     loss = loss_func(Y, label)
+        #     loss_list.append(loss.cpu().item())
+        #     #
+        #     # optimizer.zero_grad()
+        #     # loss.backward()
+        #     # optimizer.step()
+        #
+        #     scaler.scale(loss).backward()
+        #     scaler.step(optimizer)
+        #     scaler.update()
+        #     optimizer.zero_grad()
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+        Y = model(X)
+        loss = loss_func(Y, label)
+        loss_list.append(loss.cpu().item())
 
-            # scaler.scale(loss).backward()
-            # scaler.step(optimizer)
-            # scaler.update()
-            # optimizer.zero_grad()
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
         if lr_scheduler is not None:
             lr_scheduler.step(epoch + batch / dataloader.__len__())
@@ -196,32 +205,45 @@ def train_main(cfg):
                                   num_workers=train_cfg.num_workers)
 
     # 构建模型
-    model = build_model(model_cfg).to(device)
+    if train_cfg.is_swa:
+        model = torch.load(train_cfg.check_point_file,
+                           map_location=device).to(device)  # device参数传在里面，不然默认是先加载到cuda:0，to之后再加载到相应的device上
+        swa_model = torch.load(train_cfg.check_point_file,
+                               map_location=device).to(device)  # device参数传在里面，不然默认是先加载到cuda:0，to之后再加载到相应的device上
+        swa_n = 0
+        parameters = swa_model.parameters()
+    else:
+        model = build_model(model_cfg).to(device)
+        parameters = model.parameters()
     # model = torch.nn.DataParallel(model)
 
     # 定义优化器
     optimizer_cfg = train_cfg.optimizer_cfg
     lr_scheduler_cfg = train_cfg.lr_scheduler_cfg
     if optimizer_cfg.type == 'adam':
-        optimizer = optim.Adam(params=model.parameters(),
+        optimizer = optim.Adam(params=parameters,
                                lr=optimizer_cfg.lr,
                                weight_decay=optimizer_cfg.weight_decay)
     elif optimizer_cfg.type == 'adamw':
-        optimizer = optim.AdamW(model.parameters(),
+        optimizer = optim.AdamW(params=parameters,
                                 lr=optimizer_cfg.lr, weight_decay=optimizer_cfg.weight_decay)
     elif optimizer_cfg.type == 'sgd':
-        optimizer = optim.SGD(params=model.parameters(),
+        optimizer = optim.SGD(params=parameters,
                               lr=optimizer_cfg.lr,
                               momentum=optimizer_cfg.momentum,
                               weight_decay=optimizer_cfg.weight_decay)
     elif optimizer_cfg.type == 'RMS':
-        optimizer = optim.RMSprop(params=model.parameters(), lr=optimizer_cfg.lr,
+        optimizer = optim.RMSprop(params=parameters, lr=optimizer_cfg.lr,
                                   weight_decay=optimizer_cfg.weight_decay)
     else:
         raise Exception('没有该优化器！')
 
-    if lr_scheduler_cfg.policy == 'cos':
-        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=3, T_mult=2, eta_min=1e-5,
+    if not lr_scheduler_cfg:
+        lr_scheduler = None
+    elif lr_scheduler_cfg.policy == 'cos':
+        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, lr_scheduler_cfg.T_0,
+                                                                            lr_scheduler_cfg.T_mult,
+                                                                            lr_scheduler_cfg.eta_min,
                                                                             last_epoch=-1)
     elif lr_scheduler_cfg.policy == 'LambdaLR':
         import math
@@ -267,10 +289,14 @@ def train_main(cfg):
                                       aux_weight=model_cfg.aux_weight,
                                       dataloader=train_dataloader,
                                       device=device)
-        else:  # 普通的训练方式
+        elif train_cfg.is_swa:  # 普通的训练方式
+            train_loss = train_epoch(swa_model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
+            moving_average(model, swa_model, 1.0 / (swa_n + 1))
+            swa_n += 1
+            bn_update(train_dataloader, model,device)
+        else:
             train_loss = train_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
             # train_loss = train_unet3p_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
-            lr_scheduler.step()
 
         #
         # 在训练集上评估模型
@@ -278,7 +304,6 @@ def train_main(cfg):
         #                                     cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
         val_loss, val_miou = evaluate_model(model, val_dataset, loss_func, device,
                                             cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
-
 
         train_loss_list.append(train_loss)
         val_loss_list.append(val_loss)

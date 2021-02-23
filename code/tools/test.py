@@ -68,7 +68,7 @@ def predict(model, dataset, out_dir, device, batch_size=128):
 
     # 构建dataloader
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4, shuffle=False)
-
+    model.eval()
     with torch.no_grad():
         for batch, item in tqdm(enumerate(dataloader)):
             data, _ = item
