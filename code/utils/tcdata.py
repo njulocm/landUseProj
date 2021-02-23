@@ -1,12 +1,7 @@
 from torch.utils.data import Dataset
 import os
 import cv2
-import numpy as np
-import matplotlib.pyplot as plt
 import torchvision.transforms as T
-
-
-# def get_transform(transform_cfg):
 
 
 class LandDataset(Dataset):
@@ -39,7 +34,7 @@ class LandDataset(Dataset):
         filename = self.DIR + '/' + self.index_list[index]  # 不含后缀
         data = cv2.imread(filename + '.tif', cv2.IMREAD_UNCHANGED)[..., :self.input_channel]
 
-        data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
+        # data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
         if self.mode == 'test':
             label = 0  # 测试集没有label，随便给一个
             data = self.transform(data)

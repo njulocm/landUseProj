@@ -11,6 +11,8 @@ class SmpNet(nn.Module):
                 in_channels=in_channels,                  # model input channels (1 for grayscale images, 3 for RGB, etc.)
                 classes=n_class,                      # model output channels (number of classes in your dataset)
             )
+        for p in self.parameters():
+            p.requires_grad = False
         self.crf = CrfRnn(n_class)
 
     def forward(self, x):

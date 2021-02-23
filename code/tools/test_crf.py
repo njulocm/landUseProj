@@ -9,10 +9,9 @@ import ttach as tta
 import numpy as np
 import cv2
 import os
-from utils import dense_crf
 
 
-def test_main(cfg):
+def test_crf_main(cfg):
     # config
     dataset_cfg = cfg.dataset_cfg
     test_cfg = cfg.test_cfg
@@ -76,26 +75,8 @@ def predict(model, dataset, out_dir, device, batch_size=128):
             data = data.to(device)
             out = model(data)
 
-            if batch_size == 1:
-                mean = [0.485, 0.456, 0.406]  # dataLoader中设置的mean参数
-                std = [0.229, 0.224, 0.225]  # dataLoader中设置的std参数
-
-                data = data.squeeze().cpu().numpy()
-                out = F.softmax(out, dim=1)
-                out = out.squeeze().cpu().numpy()
-
-                for i in range(len(mean)):  # 反标准化
-                    data[i] = data[i] * std[i] + mean[i]
-                data = np.array(data * 255).astype(np.uint8).transpose((1,2,0))  # 反ToTensor(),从[0,1]转为[0,255]
-
-                pred = dense_crf(data,out)
-                sample_index = sample_index_list[batch * batch_size]
+            pred = torch.argmax(out, dim=1).cpu().numpy()
+            for i in range(len(pred)):
+                sample_index = sample_index_list[batch * batch_size + i]
                 out_name = out_dir + f'/{sample_index}.png'
-                cv2.imwrite(out_name, pred + 1)  # 提交的结果需要1~10
-
-            else:
-                pred = torch.argmax(out, dim=1).cpu().numpy()
-                for i in range(len(pred)):
-                    sample_index = sample_index_list[batch * batch_size + i]
-                    out_name = out_dir + f'/{sample_index}.png'
-                    cv2.imwrite(out_name, pred[i] + 1)  # 提交的结果需要1~10
+                cv2.imwrite(out_name, pred[i] + 1)  # 提交的结果需要1~10
