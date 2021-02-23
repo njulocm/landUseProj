@@ -101,7 +101,6 @@ class CrfRnn(nn.Module):
         for i in range(len(image)):
             temp_image = image[i]
             temp_logits = logits[i]
-            print(i)
             spatial_filter = SpatialFilter(temp_image, gamma=self.params.gamma)
             bilateral_filter = BilateralFilter(
                 temp_image, alpha=self.params.alpha, beta=self.params.beta

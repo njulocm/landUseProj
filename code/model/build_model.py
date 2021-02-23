@@ -1,10 +1,11 @@
 from .FCN import VGGNet, FCN
-from .Unet import U_Net, AttU_Net, NestedUNet, UnetCRF
+from .Unet import U_Net, AttU_Net, NestedUNet
 from .SegNet import SegNet
 from .PSPNet import PSPNet
 from .deeplab.deeplab import DeepLabV3P
 from .HRNet import hrnetv2 as HRNet
 from .segmentation_models import SmpNet
+from .Unet3p import UNet3Plus_DeepSup
 import torch
 
 
@@ -25,6 +26,9 @@ def build_model(model_cfg):
     elif model_cfg.type == 'AttUnet':
         attUnet = AttU_Net(img_ch=model_cfg.input_channel, output_ch=model_cfg.num_classes)
         return attUnet
+    elif model_cfg.type == 'Unet3p':
+        u_net3p = UNet3Plus_DeepSup(img_ch=model_cfg.input_channel, output_ch=model_cfg.num_classes)
+        return u_net3p
     elif model_cfg.type == 'NestedUnet':
         nestedUnet = NestedUNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return nestedUnet
@@ -41,6 +45,22 @@ def build_model(model_cfg):
                          use_ppm=model_cfg.use_ppm,
                          pretrained=model_cfg.pretrained)
         return psp_net
+    elif model_cfg.type == 'DeepLabV3P':
+        deeplabv3p_model = DeepLabV3P(num_classes=model_cfg.num_classes,
+                                      backbone=model_cfg.backbone,
+                                      output_stride=model_cfg.out_stride,
+                                      sync_bn=model_cfg.sync_bn,
+                                      freeze_bn=model_cfg.freeze_bn,
+                                      pretrained=model_cfg.pretrained)
+        return deeplabv3p_model
+    elif model_cfg.type == 'HRNet':
+        hrnet = HRNet()
+        # hrnet = HRNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
+        return hrnet
+    elif model_cfg.type == 'SMP':
+        smpnet = SmpNet(encoder_name=model_cfg.backbone, encoder_weights=model_cfg.encoder_weights,
+                        in_channels=model_cfg.input_channel, n_class=model_cfg.num_classes)
+        return smpnet
     elif model_cfg.type == 'CheckPoint':  # 加载已有模型
         model = torch.load(model_cfg.check_point_file, map_location=model_cfg.device)
         print("已加载模型" + model_cfg.check_point_file)

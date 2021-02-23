@@ -1,6 +1,6 @@
 import sys
 from utils import Config
-from tools import train_main, test_main
+from tools import train_main, test_main, train_crf_main, test_crf_main
 
 if __name__ == '__main__':
     # 命令行参数
@@ -13,11 +13,13 @@ if __name__ == '__main__':
 
     # 训练模型
     if mode == 'train':
-        train_main(cfg=cfg)
+        # train_main(cfg=cfg)
+        train_crf_main(cfg=cfg)
 
     # 测试模型
     if mode == 'test':
-        test_main(cfg)
+        # test_main(cfg)
+        test_crf_main(cfg)
 
     print('end')
     print("this is a test")

@@ -1,13 +1,11 @@
-from torch.utils.data.dataloader import DataLoader
-from utils import evaluate_model, evaluate_cls_model,evaluate_unet3p_model, LandDataset, adjust_learning_rate
+from utils import evaluate_model, evaluate_cls_model, evaluate_unet3p_model, LandDataset, adjust_learning_rate
 from model import build_model
 
 from pytorch_toolbelt import losses as L
-from .losses import DiceLoss, FocalLoss, SoftCrossEntropyLoss
+from .losses import DiceLoss, SoftCrossEntropyLoss
 
 import torch
-from torch import nn
-from torch.utils.data import random_split, DataLoader
+from torch.utils.data import DataLoader
 from torch.autograd import Variable
 from torch import optim
 from torch.cuda.amp import autocast, GradScaler
@@ -15,123 +13,6 @@ import time
 import os
 import logging
 from tqdm import tqdm
-
-
-def train_unet3p_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, device):
-    '''
-    :param model:
-    :param optimizer:
-    :param loss_func:
-    :param dataloader:
-    :param device:
-    :return: 返回该轮训练的平均loss
-    '''
-    loss_list = []
-    model.train()
-    # scaler = GradScaler()
-    for batch, item in tqdm(enumerate(dataloader)):
-        X, label = item
-        X = Variable(X.to(device))
-        label = Variable(label.to(device))
-        with autocast():
-            Y = model(X)
-
-            loss = torch.tensor(0, dtype=torch.float32).to(device)
-            for pred in Y:
-                loss += loss_func(pred, label)
-            # loss = loss_func(Y, label)
-            loss_list.append(loss.cpu().item())
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        # if lr_scheduler is not None:
-        #     lr_scheduler.step(epoch + batch / dataloader.__len__())
-
-        # if lr_scheduler is not None:
-        #     lr_scheduler.step(epoch + batch / dataloader.__len__())
-
-    return sum(loss_list) / 5.0 / len(loss_list)
-
-
-def train_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, device):
-    '''
-    :param model:
-    :param optimizer:
-    :param loss_func:
-    :param dataloader:
-    :param device:
-    :return: 返回该轮训练的平均loss
-    '''
-    loss_list = []
-    model.train()
-    # scaler = GradScaler()
-    for batch, item in tqdm(enumerate(dataloader)):
-        X, label = item
-        X = Variable(X.to(device))
-        label = Variable(label.to(device))
-        with autocast():
-            Y = model(X)
-            loss = loss_func(Y, label)
-            loss_list.append(loss.cpu().item())
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            # scaler.scale(loss).backward()
-            # scaler.step(optimizer)
-            # scaler.update()
-            # optimizer.zero_grad()
-
-        if lr_scheduler is not None:
-            lr_scheduler.step(epoch + batch / dataloader.__len__())
-
-    return sum(loss_list) / len(loss_list)
-
-
-def train_stage2_epoch(model, model_2, optimizer, lr_scheduler, loss_func, dataloader, epoch, device):
-    '''
-    :param model:
-    :param optimizer:
-    :param loss_func:
-    :param dataloader:
-    :param device:
-    :return: 返回该轮训练的平均loss
-    '''
-    loss_list = []
-    model.train()
-    scaler = GradScaler()
-    model.eval()
-    model_2.train()
-    for batch, item in tqdm(enumerate(dataloader)):
-        X, label = item
-        X1 = X[:, :-1, :, :]
-        X2 = X[:, -1:, :, :]
-        X1 = Variable(X1.to(device))
-        X2 = Variable(X2.to(device))
-        label = Variable(label.to(device))
-        with autocast():
-            Y1 = model(X1)
-            Y1 = (torch.argmax(Y1, dim=1) + 1) / 10.0
-            Y1 = torch.unsqueeze(Y1, 1)
-
-            new_X = Variable(torch.cat((Y1, X2), 1))
-            Y2 = model_2(new_X)
-
-            loss = loss_func(Y2, label)
-            loss_list.append(loss.cpu().item())
-
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
-            optimizer.zero_grad()
-
-        if lr_scheduler is not None:
-            lr_scheduler.step(epoch + batch / dataloader.__len__())
-
-    return sum(loss_list) / len(loss_list)
 
 
 def train_PSPNet(model, optimizer, aux_weight, dataloader, device):
@@ -159,7 +40,39 @@ def train_PSPNet(model, optimizer, aux_weight, dataloader, device):
     return sum(loss_list) / len(loss_list)
 
 
-def train_main(cfg):
+def train_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, device):
+    '''
+    :param model:
+    :param optimizer:
+    :param loss_func:
+    :param dataloader:
+    :param device:
+    :return: 返回该轮训练的平均loss
+    '''
+    loss_list = []
+    model.train()
+    # scaler = GradScaler()
+    for batch, item in tqdm(enumerate(dataloader)):
+        X, label = item
+        X = Variable(X.to(device))
+        label = Variable(label.to(device))
+        # with autocast():
+        Y = model(X)
+        loss = loss_func(Y, label)
+        loss_list.append(loss.cpu().item())
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        if lr_scheduler is not None:
+            lr_scheduler.step(epoch + batch / dataloader.__len__())
+
+
+    return sum(loss_list) / len(loss_list)
+
+
+def train_crf_main(cfg):
     '''
     训练的主函数
     :param cfg: 配置
@@ -168,6 +81,7 @@ def train_main(cfg):
 
     # config
     train_cfg = cfg.train_cfg
+    test_cfg = cfg.test_cfg
     dataset_cfg = cfg.dataset_cfg
     model_cfg = cfg.model_cfg
     device = cfg.device
@@ -196,26 +110,34 @@ def train_main(cfg):
                                   num_workers=train_cfg.num_workers)
 
     # 构建模型
-    model = build_model(model_cfg).to(device)
+    model_crf = build_model(model_cfg).to(device)
+    model_crf_dict = model_crf.state_dict()
+    model = torch.load(test_cfg.check_point_file,
+                       map_location=device).to(device)
+    # print(model)
+    model_dict = {k: v for k, v in model.state_dict().items() if k in model_crf_dict}
+    model_crf_dict.update(model_dict)
+    model_crf.load_state_dict(model_crf_dict)
     # model = torch.nn.DataParallel(model)
+    params_crf = filter(lambda p: p.requires_grad, model_crf.parameters())
 
     # 定义优化器
     optimizer_cfg = train_cfg.optimizer_cfg
     lr_scheduler_cfg = train_cfg.lr_scheduler_cfg
     if optimizer_cfg.type == 'adam':
-        optimizer = optim.Adam(params=model.parameters(),
+        optimizer = optim.Adam(params=params_crf,
                                lr=optimizer_cfg.lr,
                                weight_decay=optimizer_cfg.weight_decay)
     elif optimizer_cfg.type == 'adamw':
-        optimizer = optim.AdamW(model.parameters(),
+        optimizer = optim.AdamW(params_crf,
                                 lr=optimizer_cfg.lr, weight_decay=optimizer_cfg.weight_decay)
     elif optimizer_cfg.type == 'sgd':
-        optimizer = optim.SGD(params=model.parameters(),
+        optimizer = optim.SGD(params=params_crf,
                               lr=optimizer_cfg.lr,
                               momentum=optimizer_cfg.momentum,
                               weight_decay=optimizer_cfg.weight_decay)
     elif optimizer_cfg.type == 'RMS':
-        optimizer = optim.RMSprop(params=model.parameters(), lr=optimizer_cfg.lr,
+        optimizer = optim.RMSprop(params=params_crf, lr=optimizer_cfg.lr,
                                   weight_decay=optimizer_cfg.weight_decay)
     else:
         raise Exception('没有该优化器！')
@@ -235,7 +157,7 @@ def train_main(cfg):
     DiceLoss_fn = DiceLoss(mode='multiclass')
     SoftCrossEntropy_fn = SoftCrossEntropyLoss(smooth_factor=0.1)
     loss_func = L.JointLoss(first=DiceLoss_fn, second=SoftCrossEntropy_fn,
-                            first_weight=0.5, second_weight=0.5).cuda()
+                            first_weight=0.5, second_weight=0.5).to(device)
     # loss_cls_func = torch.nn.BCEWithLogitsLoss()
 
     # 创建保存模型的文件夹
@@ -263,22 +185,21 @@ def train_main(cfg):
         # 训练一轮
         if is_PSPNet:  # 如果是PSPNet,用不同的训练方式
             train_loss = train_PSPNet(model=model,
-                                      optimizer=optimizer,
+                                      optimizer=model_crf,
                                       aux_weight=model_cfg.aux_weight,
                                       dataloader=train_dataloader,
                                       device=device)
         else:  # 普通的训练方式
-            train_loss = train_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
+            train_loss = train_epoch(model_crf, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
             # train_loss = train_unet3p_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
-            lr_scheduler.step()
+            # lr_scheduler.step()
 
         #
         # 在训练集上评估模型
         # val_loss, val_miou = evaluate_unet3p_model(model, val_dataset, loss_func, device,
         #                                     cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
-        val_loss, val_miou = evaluate_model(model, val_dataset, loss_func, device,
+        val_loss, val_miou = evaluate_model(model_crf, val_dataset, loss_func, device,
                                             cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
-
 
         train_loss_list.append(train_loss)
         val_loss_list.append(val_loss)
@@ -288,11 +209,11 @@ def train_main(cfg):
             val_loss_min = val_loss
             best_epoch = epoch
             best_miou = val_miou
-            torch.save(model, model_cfg.check_point_file)
+            torch.save(model_crf, model_cfg.check_point_file)
 
         if epoch % auto_save_epoch == auto_save_epoch - 1:  # 每auto_save_epoch轮保存一次
             model_file = model_cfg.check_point_file.split('.')[0] + '-epoch{}.pth'.format(epoch)
-            torch.save(model, model_file)
+            torch.save(model_crf, model_file)
 
         # 打印中间结果
         end_time = time.time()
