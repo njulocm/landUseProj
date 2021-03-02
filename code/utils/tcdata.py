@@ -26,7 +26,7 @@ class LandDataset(Dataset):
         #     self.class_dict = self._get_class_dict()
 
     def _get_index_list(self):  # 获得所有数据的index
-        index_list = [filename.split('.')[0] for filename in os.listdir(self.DIR)[:80]]
+        index_list = [filename.split('.')[0] for filename in os.listdir(self.DIR)]
         index_list = list(set(index_list))
         index_list.sort()
         return index_list
@@ -62,7 +62,6 @@ class LandDataset(Dataset):
             return data, mask
         else:
             mask = cv2.imread(filename + '.png', cv2.IMREAD_GRAYSCALE) - 1
-            mask = mask.astype(np.int64)
             data, mask = self.transform((data, mask))
             # label = np.array(self.class_dict[filename]).astype(np.uint8)
             # return data, mask, label
