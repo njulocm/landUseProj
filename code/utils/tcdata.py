@@ -65,7 +65,7 @@ class LandDataset(Dataset):
             data, mask = self.transform((data, mask))
             # label = np.array(self.class_dict[filename]).astype(np.uint8)
             # return data, mask, label
-            return data, mask
+            return data, mask.long()
 
     # ----之前没有transform的版本----
     # def __getitem__(self, index):

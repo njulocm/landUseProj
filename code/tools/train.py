@@ -12,6 +12,7 @@ from torch.utils.data import random_split, DataLoader
 from torch.autograd import Variable
 from torch import optim
 from torch.cuda.amp import autocast, GradScaler
+import numpy as np
 import time
 import os
 import logging
@@ -34,26 +35,23 @@ def train_unet3p_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, ep
         X, label = item
         X = Variable(X.to(device))
         label = Variable(label.to(device))
-        with autocast():
-            Y = model(X)
+        Y = model(X)
 
-            loss = torch.tensor(0, dtype=torch.float32).to(device)
-            for pred in Y:
-                loss += loss_func(pred, label)
-            # loss = loss_func(Y, label)
-            loss_list.append(loss.cpu().item())
+        loss = 0
+        for pred in Y:
+            loss += loss_func(pred, label)
+        loss /= len(Y)
+        # loss = loss_func(Y, label)
+        loss_list.append(loss.cpu().item())
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-        # if lr_scheduler is not None:
-        #     lr_scheduler.step(epoch + batch / dataloader.__len__())
+        if lr_scheduler is not None:
+            lr_scheduler.step(epoch + batch / dataloader.__len__())
 
-        # if lr_scheduler is not None:
-        #     lr_scheduler.step(epoch + batch / dataloader.__len__())
-
-    return sum(loss_list) / 5.0 / len(loss_list)
+    return sum(loss_list) / len(loss_list)
 
 
 def train_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, device):
@@ -201,8 +199,13 @@ def train_main(cfg):
                               transform=dataset_cfg.val_transform)
 
     # 构建dataloader
+    def _init_fn():
+        np.random.seed(cfg.random_seed)
+
     train_dataloader = DataLoader(train_dataset, batch_size=train_cfg.batch_size, shuffle=True,
-                                  num_workers=train_cfg.num_workers)
+                                  num_workers=train_cfg.num_workers, drop_last=True, worker_init_fn=_init_fn())
+    val_dataloader = DataLoader(val_dataset, batch_size=train_cfg.batch_size, num_workers=train_cfg.num_workers,
+                                shuffle=False, drop_last=True, worker_init_fn=_init_fn())
 
     # 构建模型
     if train_cfg.is_swa:
@@ -293,7 +296,7 @@ def train_main(cfg):
             train_loss = train_epoch(swa_model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
             moving_average(model, swa_model, 1.0 / (swa_n + 1))
             swa_n += 1
-            bn_update(train_dataloader, model,device)
+            bn_update(train_dataloader, model, device)
         else:
             train_loss = train_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
             # train_loss = train_unet3p_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
@@ -302,8 +305,7 @@ def train_main(cfg):
         # 在训练集上评估模型
         # val_loss, val_miou = evaluate_unet3p_model(model, val_dataset, loss_func, device,
         #                                     cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
-        val_loss, val_miou = evaluate_model(model, val_dataset, loss_func, device,
-                                            cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
+        val_loss, val_miou = evaluate_model(model, val_dataloader, loss_func, device, cfg.num_classes)
 
         train_loss_list.append(train_loss)
         val_loss_list.append(val_loss)
