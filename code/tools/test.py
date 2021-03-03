@@ -68,7 +68,7 @@ def predict(model, dataset, out_dir, device, batch_size=128):
 
     # 构建dataloader
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4, shuffle=False)
-
+    model.eval()
     with torch.no_grad():
         for batch, item in tqdm(enumerate(dataloader)):
             data, _ = item
@@ -76,9 +76,23 @@ def predict(model, dataset, out_dir, device, batch_size=128):
             data = data.to(device)
             out = model(data)
 
+            # score1 = model(data)
+            #
+            # score2 = model(torch.flip(data, [0, 3]))
+            # #         score2 = score2.cpu().numpy()
+            # score2 = torch.flip(score2, [3, 0])
+            #
+            # score3 = model(torch.flip(data, [0, 2]))
+            # #         score3 = score3.cpu().numpy()
+            # score3 = torch.flip(score3, [2, 0])
+            #
+            # out = (score1 + score2 + score3) / 3.0
+
+
             if batch_size == 1:
                 mean = [0.485, 0.456, 0.406]  # dataLoader中设置的mean参数
                 std = [0.229, 0.224, 0.225]  # dataLoader中设置的std参数
+
 
                 data = data.squeeze().cpu().numpy()
                 out = F.softmax(out, dim=1)

@@ -3,9 +3,9 @@ import utils.transforms_DL as T_DL
 
 num_classes = 10
 input_channel = 4
-device = 'cpu'
-root_dir = '/home/chiizhang/TC_remote_sense'
-logfile = root_dir + '/code/log/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0221.log'
+device = 'cuda:0'
+root_dir = '/home/cailinhao/landUseProj_master/landUseProj/'
+logfile = root_dir + '/code/log/smp_unetpp_swa3e4_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0222.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
 train_std = [0.229, 0.224, 0.225, 0.25]
@@ -33,12 +33,12 @@ val_transform = T.Compose([
 
 test_transform = T.Compose([
     T.ToTensor(),
-    T.Normalize(mean=test_mean[:input_channel if input_channel != 4 else -1], std=test_std[:input_channel if input_channel != 4 else -1]),
+    T.Normalize(mean=test_mean[:input_channel], std=test_std[:input_channel]),
 ])
 
 dataset_cfg = dict(
-    # train_dir=root_dir + '/tcdata/suichang_round1_train_210120',
-    train_dir=root_dir + '/tcdata/train',
+    train_dir=root_dir + '/tcdata/suichang_round1_train_210120',
+    # train_dir=root_dir + '/tcdata/train',
     val_dir=root_dir + '/tcdata/validation',
     test_dir=root_dir + '/tcdata/suichang_round1_test_partA_210120',
     input_channel=input_channel,  # 使用几个通道作为输入
@@ -59,7 +59,7 @@ model_cfg = dict(
     input_channel=input_channel,
     num_classes=num_classes,
     pretrained=True,
-    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_crf_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0221/smp_unetpp_crf_best.pth',
+    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_swa3e4_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0222/smp_unetpp_best.pth',
 
     # type='AttUnet',
     # input_channel=4,
@@ -72,14 +72,14 @@ model_cfg = dict(
 )
 
 train_cfg = dict(
-    num_workers=4,
+    num_workers=6,
     batch_size=8,
-    num_epochs=50,
+    num_epochs=24,
     optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),
-    lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5),
-    auto_save_epoch=5,  # 每隔几轮自动保存模型
+    lr_scheduler_cfg=dict(policy='cos',T_0=1, T_mult=1, eta_min=1e-5),
+    auto_save_epoch=3,  # 每隔几轮自动保存模型
     is_PSPNet=False,  # 不是PSPNet都设为false
-    is_swa=False,
+    is_swa = True,
     check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0218/smp_unetpp_best.pth',
 )
 
@@ -91,6 +91,6 @@ test_cfg = dict(
     dataset='test_dataset',
     batch_size=train_cfg['batch_size'],
     num_workers=train_cfg['num_workers'],
-    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_crf_best.pth',
-    out_dir=root_dir + '/prediction_result/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0218/',
+    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_swa3e4_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0222/smp_unetpp_best-epoch2.pth',
+    out_dir=root_dir + '/prediction_result/smp_unetpp_swa3e4_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0222/',
 )

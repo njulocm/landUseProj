@@ -1,7 +1,12 @@
 from torch.utils.data import Dataset
 import os
 import cv2
+import numpy as np
+import matplotlib.pyplot as plt
 import torchvision.transforms as T
+
+
+# def get_transform(transform_cfg):
 
 
 class LandDataset(Dataset):
@@ -17,12 +22,29 @@ class LandDataset(Dataset):
         self.transform = transform
         self.input_channel = input_channel
         self.index_list = self._get_index_list()  # 所有数据的index
+        # if self.mode != 'test':
+        #     self.class_dict = self._get_class_dict()
 
     def _get_index_list(self):  # 获得所有数据的index
         index_list = [filename.split('.')[0] for filename in os.listdir(self.DIR)]
         index_list = list(set(index_list))
         index_list.sort()
         return index_list
+
+    def _get_class_dict(self):  # 获得所有数据的index
+        class_dict = {}
+        for filename in self.index_list:
+            label_filename = self.DIR + '/' + filename  # 不含后缀
+            label = cv2.imread(label_filename + '.png', cv2.IMREAD_GRAYSCALE) - 1
+            for i in range(0, 10):
+                if i == 0:
+                    class_dict[label_filename] = []
+                if (label == i).sum() > 0:
+                    class_dict[label_filename].append(1)
+                else:
+                    class_dict[label_filename].append(0)
+
+        return class_dict
 
     def __len__(self):
         '''返回数据集大小'''
@@ -33,15 +55,17 @@ class LandDataset(Dataset):
         '''获得index序号的样本'''
         filename = self.DIR + '/' + self.index_list[index]  # 不含后缀
         data = cv2.imread(filename + '.tif', cv2.IMREAD_UNCHANGED)[..., :self.input_channel]
-
         # data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
         if self.mode == 'test':
-            label = 0  # 测试集没有label，随便给一个
+            mask = 0  # 测试集没有label，随便给一个
             data = self.transform(data)
+            return data, mask
         else:
-            label = cv2.imread(filename + '.png', cv2.IMREAD_GRAYSCALE) - 1
-            data, label = self.transform((data, label))
-        return data, label
+            mask = cv2.imread(filename + '.png', cv2.IMREAD_GRAYSCALE) - 1
+            data, mask = self.transform((data, mask))
+            # label = np.array(self.class_dict[filename]).astype(np.uint8)
+            # return data, mask, label
+            return data, mask
 
     # ----之前没有transform的版本----
     # def __getitem__(self, index):
