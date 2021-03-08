@@ -3,10 +3,9 @@ import utils.transforms_DL as T_DL
 
 num_classes = 10
 input_channel = 4
-random_seed = 6666
 device = 'cuda:2'
 root_dir = '/home/cailinhao/landUseProj_master/landUseProj/'
-logfile = root_dir + '/code/log/smp_unetpp_pretrain_b8_chnl4-rgb_argu_discolor-alltrain_100ep-0302.log'
+logfile = root_dir + '/code/log/smp_unetpp_swa5e5_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0226.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
 train_std = [0.229, 0.224, 0.225, 0.25]
@@ -55,12 +54,12 @@ dataset_cfg = dict(
 
 model_cfg = dict(
     type='SMP',
-    backbone='timm-efficientnet-b8',
+    backbone='efficientnet-b7',
     encoder_weights='imagenet',
     input_channel=input_channel,
     num_classes=num_classes,
     pretrained=True,
-    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain_b8_chnl4-rgb_argu_discolor-alltrain_100ep-0302/smp_unetpp_best.pth',
+    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_swa5e5_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0226/smp_unetpp_best.pth',
 
     # type='AttUnet',
     # input_channel=4,
@@ -74,16 +73,14 @@ model_cfg = dict(
 
 train_cfg = dict(
     num_workers=6,
-    batch_size=6,
-    num_epochs=95,
-    optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),
-    lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5),
-    # optimizer_cfg=dict(type='sgd', lr=1e-2, momentum=0.9, weight_decay=5e-4),
-    # lr_scheduler_cfg=dict(policy='cos', T_0=2, T_mult=2, eta_min=1e-5),
-    auto_save_epoch=5,  # 每隔几轮自动保存模型
+    batch_size=8,
+    num_epochs=48,
+    optimizer_cfg=dict(type='adamw', lr=5e-5, momentum=0.9, weight_decay=5e-4),
+    lr_scheduler_cfg=dict(policy='cos',T_0=1, T_mult=1, eta_min=1e-6),
+    auto_save_epoch=3,  # 每隔几轮自动保存模型
     is_PSPNet=False,  # 不是PSPNet都设为false
-    is_swa=False,
-    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0218/smp_unetpp_best.pth',
+    is_swa = True,
+    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0224/smp_unetpp_best.pth',
 )
 
 test_cfg = dict(
@@ -94,6 +91,6 @@ test_cfg = dict(
     dataset='test_dataset',
     batch_size=train_cfg['batch_size'],
     num_workers=train_cfg['num_workers'],
-    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain_b8_chnl4-rgb_argu_discolor-alltrain_100ep-0302/smp_unetpp_best.pth',
-    out_dir=root_dir + '/prediction_result/smp_unetpp_pretrain_b8_chnl4-rgb_argu_discolor-alltrain_100ep-0302/',
+    check_point_file=root_dir + '/code/checkpoint/smp_unetpp_swa5e5_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0226/smp_unetpp_best-epoch11.pth',
+    out_dir=root_dir + '/prediction_result/smp_unetpp_swa5e5_e12_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0226/',
 )

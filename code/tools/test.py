@@ -3,13 +3,14 @@ from utils import evaluate_model, LandDataset
 import torch
 import torch.nn as nn
 from torch.utils.data import random_split, DataLoader
+from utils import evaluate_model, evaluate_cls_model, evaluate_unet3p_model, LandDataset, adjust_learning_rate, \
+    moving_average, fix_bn, bn_update, dense_crf
 import torch.nn.functional as F
 from tqdm import tqdm
 import ttach as tta
 import numpy as np
 import cv2
 import os
-from utils import dense_crf
 
 
 def test_main(cfg):
@@ -31,6 +32,12 @@ def test_main(cfg):
     else:
         raise Exception('没有配置数据集！')
 
+    def _init_fn():
+        np.random.seed(cfg.random_seed)
+
+    dataloader = DataLoader(dataset, batch_size=test_cfg.batch_size, shuffle=False, num_workers=test_cfg.num_workers,
+                            worker_init_fn=_init_fn())
+
     # 加载模型,预测结果
     model = torch.load(test_cfg.check_point_file,
                        map_location=device).to(device)  # device参数传在里面，不然默认是先加载到cuda:0，to之后再加载到相应的device上
@@ -40,17 +47,18 @@ def test_main(cfg):
 
     # 预测结果
     if test_cfg.is_predict:
-        predict(model=model, dataset=dataset, out_dir=test_cfg.out_dir, device=device,
-                batch_size=1 if test_cfg.is_crf else test_cfg.batch_size)
+        # 获取数据集中样本的序号
+        sample_index_list = dataset.index_list
+        predict(model=model, dataloader=dataloader, out_dir=test_cfg.out_dir, device=device,
+                sample_index_list=sample_index_list)
 
     # 评估模型
     if test_cfg.is_evaluate:
         loss_func = nn.CrossEntropyLoss().to(device)
-        evaluate_model(model, dataset, loss_func, device, cfg.num_classes,
-                       num_workers=test_cfg.num_workers, batch_size=test_cfg.batch_size)
+        evaluate_model(model, dataloader, loss_func, device, cfg.num_classes)
 
 
-def predict(model, dataset, out_dir, device, batch_size=128):
+def predict(model, dataloader, out_dir, device, sample_index_list):
     '''
     输出预测结果
     :param model:
@@ -63,12 +71,8 @@ def predict(model, dataset, out_dir, device, batch_size=128):
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
-    # 获取数据集中样本的序号
-    sample_index_list = dataset.index_list
-
-    # 构建dataloader
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4, shuffle=False)
-
+    # eval mode
+    model.eval()
     with torch.no_grad():
         for batch, item in tqdm(enumerate(dataloader)):
             data, _ = item
@@ -76,7 +80,19 @@ def predict(model, dataset, out_dir, device, batch_size=128):
             data = data.to(device)
             out = model(data)
 
-            if batch_size == 1:
+            # score1 = model(data)
+            #
+            # score2 = model(torch.flip(data, [0, 3]))
+            # #         score2 = score2.cpu().numpy()
+            # score2 = torch.flip(score2, [3, 0])
+            #
+            # score3 = model(torch.flip(data, [0, 2]))
+            # #         score3 = score3.cpu().numpy()
+            # score3 = torch.flip(score3, [2, 0])
+            #
+            # out = (score1 + score2 + score3) / 3.0
+
+            if dataloader.batch_size == 1:
                 mean = [0.485, 0.456, 0.406]  # dataLoader中设置的mean参数
                 std = [0.229, 0.224, 0.225]  # dataLoader中设置的std参数
 
@@ -86,16 +102,16 @@ def predict(model, dataset, out_dir, device, batch_size=128):
 
                 for i in range(len(mean)):  # 反标准化
                     data[i] = data[i] * std[i] + mean[i]
-                data = np.array(data * 255).astype(np.uint8).transpose((1,2,0))  # 反ToTensor(),从[0,1]转为[0,255]
+                data = np.array(data * 255).astype(np.uint8).transpose((1, 2, 0))  # 反ToTensor(),从[0,1]转为[0,255]
 
-                pred = dense_crf(data,out)
-                sample_index = sample_index_list[batch * batch_size]
+                pred = dense_crf(data, out)
+                sample_index = sample_index_list[batch * dataloader.batch_size]
                 out_name = out_dir + f'/{sample_index}.png'
                 cv2.imwrite(out_name, pred + 1)  # 提交的结果需要1~10
 
             else:
                 pred = torch.argmax(out, dim=1).cpu().numpy()
                 for i in range(len(pred)):
-                    sample_index = sample_index_list[batch * batch_size + i]
+                    sample_index = sample_index_list[batch * dataloader.batch_size + i]
                     out_name = out_dir + f'/{sample_index}.png'
                     cv2.imwrite(out_name, pred[i] + 1)  # 提交的结果需要1~10

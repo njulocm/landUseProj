@@ -72,7 +72,7 @@ train_cfg = dict(
     num_workers=6,
     batch_size=8,
     num_epochs=50,
-    optimizer_cfg=dict(type='adamw', lr=0.01, momentum=0.9, weight_decay=5e-4),
+    optimizer_cfg=dict(type='adamw', lr=0.0005, momentum=0.9, weight_decay=5e-4),
     lr_scheduler_cfg=dict(policy='cos'),
     # optimizer_cfg=dict(type='RMS', lr=0.1, momentum=0.9, weight_decay=1e-8),
     # lr_scheduler_cfg=dict(policy='LambdaLR'),
