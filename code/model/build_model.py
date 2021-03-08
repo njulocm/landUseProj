@@ -59,7 +59,10 @@ def build_model(model_cfg):
         return hrnet
     elif model_cfg.type == 'SMP':
         smpnet = SmpNet(encoder_name=model_cfg.backbone, encoder_weights=model_cfg.encoder_weights,
-                        in_channels=model_cfg.input_channel, n_class=model_cfg.num_classes)
+                        decoder_attention_type=model_cfg.decoder_attention_type,
+                        in_channels=model_cfg.input_channel, n_class=model_cfg.num_classes,
+                        crf_its=model_cfg.crf_its, train_crf_end2end=False
+                        )
         return smpnet
     elif model_cfg.type == 'CheckPoint':  # 加载已有模型
         model = torch.load(model_cfg.check_point_file, map_location=model_cfg.device)
