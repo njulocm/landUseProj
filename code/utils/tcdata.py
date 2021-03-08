@@ -10,7 +10,7 @@ import torchvision.transforms as T
 
 
 class LandDataset(Dataset):
-    def __init__(self, DIR, mode, input_channel=4, transform=T.ToTensor()):
+    def __init__(self, DIR, mode,is_crf=True, input_channel=4, transform=T.ToTensor()):
         '''
 
         :param DIR: 数据集路径
@@ -19,6 +19,7 @@ class LandDataset(Dataset):
         '''
         self.DIR = DIR
         self.mode = mode
+        self.is_crf = is_crf
         self.transform = transform
         self.input_channel = input_channel
         self.index_list = self._get_index_list()  # 所有数据的index
@@ -31,20 +32,20 @@ class LandDataset(Dataset):
         index_list.sort()
         return index_list
 
-    def _get_class_dict(self):  # 获得所有数据的index
-        class_dict = {}
-        for filename in self.index_list:
-            label_filename = self.DIR + '/' + filename  # 不含后缀
-            label = cv2.imread(label_filename + '.png', cv2.IMREAD_GRAYSCALE) - 1
-            for i in range(0, 10):
-                if i == 0:
-                    class_dict[label_filename] = []
-                if (label == i).sum() > 0:
-                    class_dict[label_filename].append(1)
-                else:
-                    class_dict[label_filename].append(0)
-
-        return class_dict
+    # def _get_class_dict(self):  # 获得所有数据的index
+    #     class_dict = {}
+    #     for filename in self.index_list:
+    #         label_filename = self.DIR + '/' + filename  # 不含后缀
+    #         label = cv2.imread(label_filename + '.png', cv2.IMREAD_GRAYSCALE) - 1
+    #         for i in range(0, 10):
+    #             if i == 0:
+    #                 class_dict[label_filename] = []
+    #             if (label == i).sum() > 0:
+    #                 class_dict[label_filename].append(1)
+    #             else:
+    #                 class_dict[label_filename].append(0)
+    #
+    #     return class_dict
 
     def __len__(self):
         '''返回数据集大小'''
@@ -58,14 +59,25 @@ class LandDataset(Dataset):
         # data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
         if self.mode == 'test':
             mask = 0  # 测试集没有label，随便给一个
-            data = self.transform(data)
-            return data, mask
+            # data = self.transform(data)
+            if self.is_crf:
+                data = self.transform['train_transform'](data)
+                ori_data, mask = self.transform['crf_transform']((data, mask))
+                return data, ori_data, mask
+            else:
+                data = self.transform['train_transform'](data)
+                return data, mask
         else:
             mask = cv2.imread(filename + '.png', cv2.IMREAD_GRAYSCALE) - 1
-            data, mask = self.transform((data, mask))
-            # label = np.array(self.class_dict[filename]).astype(np.uint8)
-            # return data, mask, label
-            return data, mask
+            if self.is_crf:
+                data, mask = self.transform['train_transform']((data, mask))
+                ori_data, mask = self.transform['crf_transform']((data, mask))
+                # label = np.array(self.class_dict[filename]).astype(np.uint8)
+                # return data, mask, label
+                return data, ori_data, mask
+            else:
+                data, mask = self.transform['train_transform']((data, mask))
+                return data, mask
 
     # ----之前没有transform的版本----
     # def __getitem__(self, index):

@@ -3,8 +3,8 @@ import utils.transforms_DL as T_DL
 
 num_classes = 10
 input_channel = 4
-device = 'cuda:0'
-root_dir = '/home/cailinhao/landUseProj_master/landUseProj/'
+device = 'cpu'
+root_dir = '/home/chiizhang/TC_remote_sense'
 logfile = root_dir + '/code/log/smp_unetpp_swa3e4_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0222.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
@@ -80,6 +80,7 @@ train_cfg = dict(
     auto_save_epoch=3,  # 每隔几轮自动保存模型
     is_PSPNet=False,  # 不是PSPNet都设为false
     is_swa = True,
+    train_crf = True,
     check_point_file=root_dir + '/code/checkpoint/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0218/smp_unetpp_best.pth',
 )
 

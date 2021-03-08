@@ -122,3 +122,19 @@ class Normalized_DL(torch.nn.Module):
         img, label = img_label
         img = self.normalize(img)
         return img, label
+
+
+class DeNormalize_DL(torch.nn.Module):
+    def __init__(self, mean, std):
+        super().__init__()
+        self.t_mean = torch.FloatTensor(mean)
+        self.t_std = torch.FloatTensor(std)
+
+    def forward(self, img_label):
+        img, label = img_label
+        c, w, h = img.shape
+        t_mean = self.t_mean.view(c, 1, 1).expand(c, w, h)
+        t_std = self.t_std.view(c, 1, 1).expand(c, w, h)
+        img = img * t_std + t_mean
+        img = (img * 255).int().float()
+        return img, label

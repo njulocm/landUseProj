@@ -80,7 +80,7 @@ class CrfRnn(nn.Module):
             torch.eye(num_labels, dtype=torch.float32)
         )
 
-    def forward(self, image, logits):
+    def forward(self, image, logits, mode):
         """
         Perform CRF inference.
 
@@ -98,6 +98,7 @@ class CrfRnn(nn.Module):
 
         # --自己改成了循环--
         out_logits = None
+        num_iterations = 10 if mode == "test" else 5
         for i in range(len(image)):
             temp_image = image[i]
             temp_logits = logits[i]
@@ -108,7 +109,7 @@ class CrfRnn(nn.Module):
             _, h, w = temp_image.shape
             cur_logits = temp_logits
 
-            for _ in range(self.num_iterations):
+            for _ in range(num_iterations):
                 # Normalization
                 q_values = self._softmax(cur_logits)
 

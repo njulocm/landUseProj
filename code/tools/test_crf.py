@@ -14,25 +14,44 @@ import os
 def test_crf_main(cfg):
     # config
     dataset_cfg = cfg.dataset_cfg
+    train_cfg = cfg.train_cfg
     test_cfg = cfg.test_cfg
     device = cfg.device
 
     if test_cfg.dataset == 'val_dataset':
         dataset = LandDataset(DIR=dataset_cfg.val_dir,
                               mode='val',
+                              is_crf=dataset_cfg.is_crf,
                               input_channel=dataset_cfg.input_channel,
                               transform=dataset_cfg.val_transform)
     elif test_cfg.dataset == 'test_dataset':
         dataset = LandDataset(dataset_cfg.test_dir,
                               mode='test',
+                              is_crf=dataset_cfg.is_crf,
                               input_channel=dataset_cfg.input_channel,
                               transform=dataset_cfg.test_transform)
     else:
         raise Exception('没有配置数据集！')
 
     # 加载模型,预测结果
-    model = torch.load(test_cfg.check_point_file,
-                       map_location=device).to(device)  # device参数传在里面，不然默认是先加载到cuda:0，to之后再加载到相应的device上
+    if test_cfg.is_trainingendcrf:
+        model_no_crf = torch.load(test_cfg.check_point_file,
+                                  map_location=device).to(device)
+        model = torch.load(train_cfg.check_point_file,
+                           map_location=device).to(device)
+
+        model_no_crf_dict = model_no_crf.state_dict()
+        model_dict = model.state_dict()
+
+        model_no_crf_dict = {k: v for k, v in model_no_crf_dict.items() if k in model_dict}
+        model_dict.update(model_no_crf_dict)
+
+        model.load_state_dict(model_dict)
+
+    else:
+        model = torch.load(test_cfg.check_point_file,
+                           map_location=device).to(device)
+
     # model = model.module  #并行训练的话需要加上这行
     if test_cfg.tta_mode:
         model = tta.SegmentationTTAWrapper(model, tta.aliases.d4_transform(), merge_mode='mean')
@@ -40,7 +59,7 @@ def test_crf_main(cfg):
     # 预测结果
     if test_cfg.is_predict:
         predict(model=model, dataset=dataset, out_dir=test_cfg.out_dir, device=device,
-                batch_size=1 if test_cfg.is_crf else test_cfg.batch_size)
+                crf_cfg=dataset_cfg.is_crf, batch_size=test_cfg.batch_size)
 
     # 评估模型
     if test_cfg.is_evaluate:
@@ -49,7 +68,7 @@ def test_crf_main(cfg):
                        num_workers=test_cfg.num_workers, batch_size=test_cfg.batch_size)
 
 
-def predict(model, dataset, out_dir, device, batch_size=128):
+def predict(model, dataset, out_dir, device, crf_cfg, batch_size=128):
     '''
     输出预测结果
     :param model:
@@ -67,13 +86,18 @@ def predict(model, dataset, out_dir, device, batch_size=128):
 
     # 构建dataloader
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4, shuffle=False)
-
+    model.eval()
     with torch.no_grad():
         for batch, item in tqdm(enumerate(dataloader)):
-            data, _ = item
-
-            data = data.to(device)
-            out = model(data)
+            if crf_cfg:
+                data, ori_data, label = item
+                data = data.to(device)
+                ori_data = ori_data.to(device)
+                out = model(data, ori_data, mode='test')
+            else:
+                data, label = item
+                data = data.to(device)
+                out = model(data, mode='test')
 
             pred = torch.argmax(out, dim=1).cpu().numpy()
             for i in range(len(pred)):

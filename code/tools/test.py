@@ -9,7 +9,7 @@ import ttach as tta
 import numpy as np
 import cv2
 import os
-from utils import dense_crf
+# from utils import dense_crf
 
 
 def test_main(cfg):

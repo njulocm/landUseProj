@@ -37,7 +37,7 @@ def compute_miou(hist):  # 分别为每个类别（在这里是19类）计算mIo
     return miou
 
 
-def evaluate_model(model, dataset, loss_func, device, num_classes, num_workers=4, batch_size=64):
+def evaluate_model(model, dataset, loss_func, device, num_classes, num_workers, batch_size,crf_cfg):
     # 构建dataloader
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
@@ -46,10 +46,18 @@ def evaluate_model(model, dataset, loss_func, device, num_classes, num_workers=4
     model.eval()
     with torch.no_grad():
         for batch, item in enumerate(dataloader):
-            data, label = item
-            data = data.to(device)
-            label = label.to(device)
-            out = model(data)
+            if crf_cfg:
+                data, ori_data, label = item
+                data = data.to(device)
+                ori_data = ori_data.to(device)
+                label = label.to(device)
+                out = model(data, ori_data)
+            else:
+                data, label = item
+                data = data.to(device)
+                label = label.to(device)
+                out = model(data)
+
             # 计算loss
             loss = loss_func(out, label)
             loss_list.append(loss.cpu().item())

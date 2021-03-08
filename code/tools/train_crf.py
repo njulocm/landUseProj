@@ -13,6 +13,7 @@ import time
 import os
 import logging
 from tqdm import tqdm
+from utils.crf import *
 
 
 def train_PSPNet(model, optimizer, aux_weight, dataloader, device):
@@ -40,7 +41,7 @@ def train_PSPNet(model, optimizer, aux_weight, dataloader, device):
     return sum(loss_list) / len(loss_list)
 
 
-def train_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, device):
+def train_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, device, crf_cfg):
     '''
     :param model:
     :param optimizer:
@@ -53,11 +54,19 @@ def train_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, de
     model.train()
     # scaler = GradScaler()
     for batch, item in tqdm(enumerate(dataloader)):
-        X, label = item
-        X = Variable(X.to(device))
-        label = Variable(label.to(device))
-        # with autocast():
-        Y = model(X)
+        if crf_cfg:
+            X, Ori_X, label = item
+            X = Variable(X.to(device))
+            Ori_X = Variable(Ori_X.to(device))
+            label = Variable(label.to(device))
+            # with autocast():
+            Y = model(X,Ori_X)
+        else:
+            X, label = item
+            X = Variable(X.to(device))
+            label = Variable(label.to(device))
+            # with autocast():
+            Y = model(X)
         loss = loss_func(Y, label)
         loss_list.append(loss.cpu().item())
 
@@ -67,7 +76,6 @@ def train_epoch(model, optimizer, lr_scheduler, loss_func, dataloader, epoch, de
 
         if lr_scheduler is not None:
             lr_scheduler.step(epoch + batch / dataloader.__len__())
-
 
     return sum(loss_list) / len(loss_list)
 
@@ -81,10 +89,12 @@ def train_crf_main(cfg):
 
     # config
     train_cfg = cfg.train_cfg
-    test_cfg = cfg.test_cfg
+    crf_cfg = cfg.is_crf
     dataset_cfg = cfg.dataset_cfg
     model_cfg = cfg.model_cfg
     device = cfg.device
+
+    # crf_denorm = dict(mean=cfg.train_mean, std=cfg.train_std)
 
     # 配置logger
     logging.basicConfig(filename=cfg.logfile,
@@ -98,10 +108,12 @@ def train_crf_main(cfg):
     # 构建数据集
     train_dataset = LandDataset(DIR=dataset_cfg.train_dir,
                                 mode='train',
+                                is_crf=dataset_cfg.is_crf,
                                 input_channel=dataset_cfg.input_channel,
                                 transform=dataset_cfg.train_transform)
     val_dataset = LandDataset(DIR=dataset_cfg.val_dir,
                               mode='val',
+                              is_crf=dataset_cfg.is_crf,
                               input_channel=dataset_cfg.input_channel,
                               transform=dataset_cfg.val_transform)
 
@@ -110,16 +122,20 @@ def train_crf_main(cfg):
                                   num_workers=train_cfg.num_workers)
 
     # 构建模型
-    model_crf = build_model(model_cfg).to(device)
-    model_crf_dict = model_crf.state_dict()
-    model = torch.load(test_cfg.check_point_file,
-                       map_location=device).to(device)
-    # print(model)
-    model_dict = {k: v for k, v in model.state_dict().items() if k in model_crf_dict}
-    model_crf_dict.update(model_dict)
-    model_crf.load_state_dict(model_crf_dict)
-    # model = torch.nn.DataParallel(model)
-    params_crf = filter(lambda p: p.requires_grad, model_crf.parameters())
+    if not model_cfg.train_crf_end2end:
+        model_crf = build_model(model_cfg).to(device)
+        model_crf_dict = model_crf.state_dict()
+        model = torch.load(train_cfg.check_point_file,
+                           map_location=device).to(device)
+        # print(model)
+        model_dict = {k: v for k, v in model.state_dict().items() if k in model_crf_dict}
+        model_crf_dict.update(model_dict)
+        model_crf.load_state_dict(model_crf_dict)
+        # model = torch.nn.DataParallel(model)
+        params_crf = filter(lambda p: p.requires_grad, model_crf.parameters())
+    else:
+        model_crf = build_model(model_cfg).to(device)
+        params_crf = model_crf.parameters()
 
     # 定义优化器
     optimizer_cfg = train_cfg.optimizer_cfg
@@ -143,7 +159,9 @@ def train_crf_main(cfg):
         raise Exception('没有该优化器！')
 
     if lr_scheduler_cfg.policy == 'cos':
-        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=3, T_mult=2, eta_min=1e-5,
+        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=lr_scheduler_cfg.T_0,
+                                                                            T_mult=lr_scheduler_cfg.T_mult,
+                                                                            eta_min=lr_scheduler_cfg.eta_min,
                                                                             last_epoch=-1)
     elif lr_scheduler_cfg.policy == 'LambdaLR':
         import math
@@ -190,7 +208,8 @@ def train_crf_main(cfg):
                                       dataloader=train_dataloader,
                                       device=device)
         else:  # 普通的训练方式
-            train_loss = train_epoch(model_crf, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
+            train_loss = train_epoch(model_crf, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device,
+                                     crf_cfg)
             # train_loss = train_unet3p_epoch(model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
             # lr_scheduler.step()
 
@@ -199,7 +218,7 @@ def train_crf_main(cfg):
         # val_loss, val_miou = evaluate_unet3p_model(model, val_dataset, loss_func, device,
         #                                     cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
         val_loss, val_miou = evaluate_model(model_crf, val_dataset, loss_func, device,
-                                            cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
+                                            cfg.num_classes, train_cfg.num_workers, train_cfg.batch_size,crf_cfg)
 
         train_loss_list.append(train_loss)
         val_loss_list.append(val_loss)
