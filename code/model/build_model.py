@@ -4,8 +4,9 @@ from .SegNet import SegNet
 from .PSPNet import PSPNet
 from .deeplab.deeplab import DeepLabV3P
 from .HRNet import hrnetv2 as HRNet
-from .segmentation_models import SmpNet
+from .segmentation_models import SmpNet, SmpDeepLab3p
 from .Unet3p import UNet3Plus_DeepSup
+from .ensemble_model import EnsembleModel
 import torch
 
 
@@ -58,8 +59,31 @@ def build_model(model_cfg):
         # hrnet = HRNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return hrnet
     elif model_cfg.type == 'SMP':
-        smpnet = SmpNet(encoder_name=model_cfg.backbone,encoder_weights=model_cfg.encoder_weights, in_channels=model_cfg.input_channel,n_class=model_cfg.num_classes)
+        smpnet = SmpNet(encoder_name=model_cfg.backbone,
+                        encoder_weights=model_cfg.encoder_weights,
+                        in_channels=model_cfg.input_channel,
+                        n_class=model_cfg.num_classes,
+                        decoder_attention_type=model_cfg.decoder_attention_type)
         return smpnet
+    elif model_cfg.type == 'SmpDeepLabV3Plus':
+        model = SmpDeepLab3p(
+            encoder_name=model_cfg.encoder_name,
+            encoder_depth=model_cfg.encoder_depth,
+            encoder_weights=model_cfg.encoder_weights,
+            encoder_output_stride=model_cfg.encoder_output_stride,
+            decoder_channels=model_cfg.decoder_channels,
+            decoder_atrous_rates=model_cfg.decoder_atrous_rates,
+            in_channels=model_cfg.in_channels,
+            classes=model_cfg.classes,
+            activation=model_cfg.activation,
+            upsampling=model_cfg.upsampling,
+            aux_params=model_cfg.aux_params,
+        )
+        return model
+    elif model_cfg.type == 'EnsembleModel':
+        model = EnsembleModel(check_point_file_list=model_cfg.check_point_file_list,
+                              device=model_cfg.device)
+        return model
     elif model_cfg.type == 'CheckPoint':  # 加载已有模型
         model = torch.load(model_cfg.check_point_file, map_location=model_cfg.device)
         print("已加载模型" + model_cfg.check_point_file)

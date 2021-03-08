@@ -11,13 +11,14 @@ from typing import Optional, Union, List
 
 
 class SmpNet(nn.Module):
-    def __init__(self, encoder_name, encoder_weights="imagenet", in_channels=3, n_class=10):
+    def __init__(self, encoder_name, encoder_weights="imagenet", in_channels=3, n_class=10,decoder_attention_type=None):
         super().__init__()
         self.model = smp.UnetPlusPlus(  # UnetPlusPlus
             encoder_name=encoder_name,  # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
             encoder_weights=encoder_weights,  # use `imagenet` pretrained weights for encoder initialization
             in_channels=in_channels,  # model input channels (1 for grayscale images, 3 for RGB, etc.)
             classes=n_class,  # model output channels (number of classes in your dataset)
+            decoder_attention_type=decoder_attention_type,
             # decoder_attention_type='scse',
             # aux_params={'classes': n_class}
         )
@@ -25,6 +26,49 @@ class SmpNet(nn.Module):
     def forward(self, x):
         x = self.model(x)
         return x
+
+class SmpDeepLab3p(nn.Module):
+    def __init__(self,
+                 encoder_name="resnet34",
+                 encoder_depth=5,
+                 encoder_weights="imagenet",
+                 encoder_output_stride=16,
+                 decoder_channels=256,
+                 decoder_atrous_rates=(12, 24, 36),
+                 in_channels=3,
+                 classes=10,
+                 activation=None,
+                 upsampling=4,
+                 aux_params=None, ):
+        super().__init__()
+        self.model = smp.DeepLabV3Plus(
+            encoder_name=encoder_name,
+            encoder_depth=encoder_depth,
+            encoder_weights=encoder_weights,
+            encoder_output_stride=encoder_output_stride,
+            decoder_channels=decoder_channels,
+            decoder_atrous_rates=decoder_atrous_rates,
+            in_channels=in_channels,
+            classes=classes,
+            activation=activation,
+            upsampling=upsampling,
+            aux_params=aux_params,
+        )
+
+    def forward(self, x):
+        return self.model(x)
+
+
+import segmentation_models_pytorch as smp
+import torch.nn as nn
+import torch
+import torch.nn.functional as F
+from segmentation_models_pytorch.base import initialization as init
+from segmentation_models_pytorch.base import modules as md
+from segmentation_models_pytorch.encoders import get_encoder
+from segmentation_models_pytorch.base import SegmentationHead, ClassificationHead
+from segmentation_models_pytorch.base.modules import Activation
+from typing import Optional, Union, List
 
 class SegmentationModel(torch.nn.Module):
 
@@ -299,6 +343,7 @@ class DecoderBlock(nn.Module):
             kernel_size=3,
             padding=1,
             use_batchnorm=use_batchnorm,
+            )
         )
         self.attention1 = md.Attention(attention_type, in_channels=in_channels + skip_channels)
         self.conv2 = md.Conv2dReLU(
