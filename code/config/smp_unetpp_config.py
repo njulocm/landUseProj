@@ -87,10 +87,10 @@ test_cfg = dict(
     is_crf=False,
     tta_mode=None,  # 'd4'
     is_ensemble=True,
-    ensemble_weight=[0.45 / 5] * 5 + [0.55 / 4] * 4,  # 模型权重，缺省为平均
+    ensemble_weight=[0.8 / 5] * 5 + [0.2 / 4] * 4,  # 模型权重，缺省为平均
     # ensemble_weight=[0.25 / 5] * 5 + [0.25 / 5] * 5 + [0.50 / 4] * 4,  # 模型权重，缺省为平均
     dataset='test_dataset',
-    batch_size=train_cfg['batch_size'],
+    batch_size=train_cfg['batch_size'] * 2,
     num_workers=train_cfg['num_workers'],
     check_point_file=[
         # b6+swa
@@ -124,7 +124,7 @@ test_cfg = dict(
         # '/home/cm/landUseProj/code/checkpoint/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_fold3-0303/smp_unetpp_best.pth',
         # '/home/cm/landUseProj/code/checkpoint/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_fold4-0303/smp_unetpp_best.pth',
     ],
-    out_dir=root_dir + '/prediction_result/b7_atte_swa_45-others_55-0307/',
+    out_dir=root_dir + '/prediction_result/b7_atte_swa_8-others_2-0308/',
     # out_dir=root_dir + '/prediction_result/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_crossVal-0307/',
 
 )
