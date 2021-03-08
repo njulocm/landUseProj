@@ -87,18 +87,20 @@ test_cfg = dict(
     is_crf=False,
     tta_mode=None,  # 'd4'
     is_ensemble=True,
-    ensemble_weight=[0.8 / 5] * 5 + [0.2 / 4] * 4,  # 模型权重，缺省为平均
-    # ensemble_weight=[0.25 / 5] * 5 + [0.25 / 5] * 5 + [0.50 / 4] * 4,  # 模型权重，缺省为平均
+    # ensemble_weight=[0.4 / 5] * 5 + [0.6 / 4] * 4,  # 模型权重，缺省为平均
+    ensemble_weight=[0.2 / 5] * 5 + [0.2 / 5] * 5 + [0.6 / 4] * 4,  # 模型权重，缺省为平均
+    is_adaBoost=True,
+    adaBoost_file='/home/cm/landUseProj/code/checkpoint/adaBoost/adaBoost_b6_b7_others.pkl',
     dataset='test_dataset',
-    batch_size=train_cfg['batch_size'] * 2,
+    batch_size=train_cfg['batch_size'],
     num_workers=train_cfg['num_workers'],
     check_point_file=[
         # b6+swa
-        # root_dir + '/code/checkpoint/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold0-0302/smp_unetpp_best.pth',
-        # root_dir + '/code/checkpoint/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold1-0302/smp_unetpp_best.pth',
-        # root_dir + '/code/checkpoint/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold2-0302/smp_unetpp_best.pth',
-        # root_dir + '/code/checkpoint/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold3-0302/smp_unetpp_best.pth',
-        # root_dir + '/code/checkpoint/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold4-0302/smp_unetpp_best.pth',
+        root_dir + '/code/checkpoint/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold0-0302/smp_unetpp_best.pth',
+        root_dir + '/code/checkpoint/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold1-0302/smp_unetpp_best.pth',
+        root_dir + '/code/checkpoint/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold2-0302/smp_unetpp_best.pth',
+        root_dir + '/code/checkpoint/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold3-0302/smp_unetpp_best.pth',
+        root_dir + '/code/checkpoint/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold4-0302/smp_unetpp_best.pth',
 
         # b7+atte+swa
         '/home/cm/landUseProj/code/checkpoint/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_swa1e5_fold0-0303/smp_unetpp_best.pth',
@@ -116,15 +118,9 @@ test_cfg = dict(
         # 0.3895
         '/home/cailinhao/landUseProj_master/landUseProj/code/checkpoint/smp_unetpp_swa1e4_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0226/smp_unetpp_best-epoch47.pth',
         # 0.3969
-
-        # b7+atte
-        # '/home/cm/landUseProj/code/checkpoint/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_fold0-0303/smp_unetpp_best.pth',
-        # '/home/cm/landUseProj/code/checkpoint/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_fold1-0303/smp_unetpp_best.pth',
-        # '/home/cm/landUseProj/code/checkpoint/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_fold2-0303/smp_unetpp_best.pth',
-        # '/home/cm/landUseProj/code/checkpoint/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_fold3-0303/smp_unetpp_best.pth',
-        # '/home/cm/landUseProj/code/checkpoint/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_fold4-0303/smp_unetpp_best.pth',
     ],
-    out_dir=root_dir + '/prediction_result/b7_atte_swa_8-others_2-0308/',
+    # out_dir=root_dir + '/prediction_result/b7_atte_swa_4-others_6-0308/',
     # out_dir=root_dir + '/prediction_result/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_crossVal-0307/',
-
+    # out_dir=root_dir + '/prediction_result/b6_swa_2_b7_atte_swa_2-others_6-0308/',
+    out_dir=root_dir + '/prediction_result/adaBoost_b6_b7_others-0308/',
 )

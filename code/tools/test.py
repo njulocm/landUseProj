@@ -11,6 +11,7 @@ import ttach as tta
 import numpy as np
 import cv2
 import os
+import joblib
 
 
 def test_main(cfg):
@@ -39,6 +40,7 @@ def test_main(cfg):
                             worker_init_fn=_init_fn())
 
     is_ensemble = test_cfg.setdefault(key='is_ensemble', default=False)
+    is_adaBoost = test_cfg.setdefault(key='is_adaBoost', default=False)
 
     if not is_ensemble:  # 没有使用多模型集成
         # 加载模型
@@ -61,18 +63,28 @@ def test_main(cfg):
         for ckpt in test_cfg.check_point_file:
             models.append(torch.load(ckpt, map_location=device))
 
-        # 获取模型集成的权重
-        ensemble_weight = test_cfg.setdefault(key='ensemble_weight', default=[1.0 / len(models)] * len(models))
-        if len(ensemble_weight) != len(models):
-            raise Exception('权重个数错误！')
+        if is_adaBoost:  # 采用adaBoost集成
+            adaBoost_model = joblib.load(test_cfg.adaBoost_file)
+            # 预测结果
+            ensemble_adaBoost_pridict(models=models,
+                                      adaBoost_model=adaBoost_model,
+                                      dataset=dataset,
+                                      out_dir=test_cfg.out_dir,
+                                      device=device,
+                                      batch_size=test_cfg.batch_size)
+        else:  # 采用加权平均集成
+            # 获取模型集成的权重
+            ensemble_weight = test_cfg.setdefault(key='ensemble_weight', default=[1.0 / len(models)] * len(models))
+            if len(ensemble_weight) != len(models):
+                raise Exception('权重个数错误！')
 
-        # 预测结果
-        ensemble_predict(models=models,
-                         ensemble_weight=ensemble_weight,
-                         dataset=dataset,
-                         out_dir=test_cfg.out_dir,
-                         device=device,
-                         batch_size=test_cfg.batch_size)
+            # 预测结果
+            ensemble_predict(models=models,
+                             ensemble_weight=ensemble_weight,
+                             dataset=dataset,
+                             out_dir=test_cfg.out_dir,
+                             device=device,
+                             batch_size=test_cfg.batch_size)
 
 
 def predict(model, dataloader, out_dir, device, sample_index_list):
@@ -106,7 +118,7 @@ def predict(model, dataloader, out_dir, device, sample_index_list):
     os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
 
 
-def ensemble_predict(models, ensemble_weight, dataset, out_dir, device,  batch_size=128):
+def ensemble_predict(models, ensemble_weight, dataset, out_dir, device, batch_size=128):
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
@@ -124,6 +136,7 @@ def ensemble_predict(models, ensemble_weight, dataset, out_dir, device,  batch_s
             model_num = 0
             for model in models:
                 temp_out = model(data)
+                temp_out = torch.nn.functional.softmax(temp_out, dim=1)  # 转成概率
                 out_avg += ensemble_weight[model_num] * temp_out
                 model_num += 1
             pred = torch.argmax(out_avg, dim=1).cpu().numpy()
@@ -135,3 +148,39 @@ def ensemble_predict(models, ensemble_weight, dataset, out_dir, device,  batch_s
     # 把输出结果打成压缩包
     os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
 
+
+def ensemble_adaBoost_pridict(models, adaBoost_model, dataset, out_dir, device, batch_size=128):
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+
+    # 获取数据集中样本的序号
+    sample_index_list = dataset.index_list
+
+    # 构建dataloader
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4, shuffle=False)
+
+    with torch.no_grad():
+        for batch, item in tqdm(enumerate(dataloader)):
+            data, _ = item
+            data = data.to(device)
+            out_all = None
+            for model in models:
+                temp_out = model(data)
+                temp_out = torch.nn.functional.softmax(temp_out, dim=1)  # 转成概率
+                temp_out = torch.unsqueeze(temp_out, dim=1)  # batch*model*chnl*w*h
+                if out_all is None:
+                    out_all = temp_out
+                else:
+                    out_all = torch.cat((out_all, temp_out), dim=1)  # batch*model*chnl*w*h
+            out_all = out_all.permute(0, 3, 4, 1, 2)  # batch*w*h*model*chnl
+            out_all = out_all.reshape((-1, out_all.shape[-2] * out_all.shape[-1]))  # (batch*w*h)*(model*chnl)
+            out_all = out_all.cpu()
+            pred = adaBoost_model.predict(out_all)  # (batch*w*h)
+            pred = pred.reshape((-1, 256, 256)) # batch*w*h
+            for i in range(len(pred)):
+                sample_index = sample_index_list[batch * batch_size + i]
+                out_name = out_dir + f'/{sample_index}.png'
+                cv2.imwrite(out_name, pred[i] + 1)  # 提交的结果需要1~10
+
+    # 把输出结果打成压缩包
+    os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
