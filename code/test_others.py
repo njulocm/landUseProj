@@ -1,4 +1,4 @@
-from model import U_Net, AttU_Net, NestedUNet, UnetCRF
+from model import U_Net, AttU_Net, NestedUNet
 import torch
 import torch.nn as nn
 
@@ -38,8 +38,24 @@ from model.crfasrnn.crfasrnn_model import CrfRnnNet
 # img2 = img1.numpy()
 # label2 = label1.numpy()
 
-data = torch.ones((64, 4, 256, 256))
-model = UnetCRF(in_ch=4, out_ch=10, num_iterations=10, crf_init_params=None)
-pred = model.forward(data)
+# data = torch.ones((64, 4, 256, 256))
+# model = UnetCRF(in_ch=4, out_ch=10, num_iterations=10, crf_init_params=None)
+# pred = model.forward(data)
+
+from model.ensemble_model import EnsembleModel
+device = 'cuda:3'
+# model = EnsembleModel(check_point_file_list=[
+#     '/home/chiizhang/TC_remote_sense/code/checkpoint/smp_unetpp_crf_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0221/smp_unetpp_crf_best.pth',
+#     '/home/cailinhao/landUseProj_master/landUseProj/code/checkpoint/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0224/smp_unetpp_best.pth',
+# ],device=device
+# ).to(device)
+
+model = torch.load('/home/cm/landUseProj/code/checkpoint/ensemble-0303/ensemble_best.pth',
+                   map_location=device)
+
+
+data = torch.ones((64, 4, 256, 256)).to(device)
+out = model(data)
+
 
 print('end')

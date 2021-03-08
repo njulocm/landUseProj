@@ -244,7 +244,7 @@ def train_main(cfg):
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, lr_scheduler_cfg.T_0,
                                                                             lr_scheduler_cfg.T_mult,
                                                                             lr_scheduler_cfg.eta_min,
-                                                                            last_epoch=-1)
+                                                                            last_epoch=lr_scheduler_cfg.last_epoch)
     elif lr_scheduler_cfg.policy == 'LambdaLR':
         import math
         lf = lambda x: (((1 + math.cos(x * math.pi / train_cfg.num_epochs)) / 2) ** 1.0) * 0.95 + 0.05  # cosine
