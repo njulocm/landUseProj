@@ -4,7 +4,7 @@ import utils.transforms_DL as T_DL
 num_classes = 10
 input_channel = 4
 random_seed = 6666
-device = 'cuda:2'
+device = 'cpu'
 root_dir = '/home/cailinhao/landUseProj_master/landUseProj/'
 logfile = root_dir + '/code/log/smp_unetpp_pretrain_b8_chnl4-rgb_argu_discolor-alltrain_100ep-0302.log'
 
