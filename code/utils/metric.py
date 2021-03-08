@@ -37,10 +37,7 @@ def compute_miou(hist):  # 分别为每个类别（在这里是19类）计算mIo
     return miou
 
 
-def evaluate_model(model, dataset, loss_func, device, num_classes, num_workers=4, batch_size=64):
-    # 构建dataloader
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-
+def evaluate_model(model, dataloader, loss_func, device, num_classes):
     hist_sum = np.zeros((num_classes, num_classes))
     loss_list = []
     model.eval()
@@ -65,10 +62,7 @@ def evaluate_model(model, dataset, loss_func, device, num_classes, num_workers=4
     return loss, miou
 
 
-def evaluate_unet3p_model(model, dataset, loss_func, device, num_classes, num_workers=4, batch_size=64):
-    # 构建dataloader
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-
+def evaluate_unet3p_model(model, dataloader, loss_func, device, num_classes):
     hist_sum = np.zeros((num_classes, num_classes))
     loss_list = []
     model.eval()
@@ -79,9 +73,10 @@ def evaluate_unet3p_model(model, dataset, loss_func, device, num_classes, num_wo
             label = label.to(device)
             out = model(data)
             # 计算loss
-            loss = torch.tensor(0, dtype=torch.float32).to(device)
+            loss =0
             for pred in out:
                 loss += loss_func(pred, label)
+            loss /= len(out)
             loss_list.append(loss.cpu().item())
 
             # 计算混淆矩阵
@@ -90,7 +85,7 @@ def evaluate_unet3p_model(model, dataset, loss_func, device, num_classes, num_wo
             for i in range(len(pred)):
                 hist = fast_hist(label[i], pred[i], num_classes)
                 hist_sum += hist
-    loss = sum(loss_list) / 5.0 / len(loss_list)
+    loss = sum(loss_list) / len(loss_list)
     miou = compute_miou(hist_sum)
 
     return loss, miou

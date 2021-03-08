@@ -3,6 +3,8 @@ from utils import evaluate_model, LandDataset
 import torch
 import torch.nn as nn
 from torch.utils.data import random_split, DataLoader
+from utils import evaluate_model, evaluate_cls_model, evaluate_unet3p_model, LandDataset, adjust_learning_rate, \
+    moving_average, fix_bn, bn_update, dense_crf
 import torch.nn.functional as F
 from tqdm import tqdm
 import ttach as tta
@@ -29,6 +31,13 @@ def test_main(cfg):
                               transform=dataset_cfg.test_transform)
     else:
         raise Exception('没有配置数据集！')
+    
+    def _init_fn():
+        np.random.seed(cfg.random_seed)
+
+    dataloader = DataLoader(dataset, batch_size=test_cfg.batch_size, shuffle=False, num_workers=test_cfg.num_workers,
+                            worker_init_fn=_init_fn())
+
 
     is_ensemble = test_cfg.setdefault(key='is_ensemble', default=False)
 
@@ -66,7 +75,8 @@ def test_main(cfg):
                          device=device,
                          batch_size=test_cfg.batch_size)
 
-def predict(model, dataset, out_dir, device, batch_size=128):
+
+def predict(model, dataloader, out_dir, device, sample_index_list):
     '''
     输出预测结果
     :param model:
@@ -79,11 +89,7 @@ def predict(model, dataset, out_dir, device, batch_size=128):
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
-    # 获取数据集中样本的序号
-    sample_index_list = dataset.index_list
-
-    # 构建dataloader
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4, shuffle=False)
+    # eval mode
     model.eval()
     with torch.no_grad():
         for batch, item in tqdm(enumerate(dataloader)):
@@ -129,3 +135,4 @@ def ensemble_predict(models, ensemble_weight, dataset, out_dir, device, batch_si
 
     # 把输出结果打成压缩包
     os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
+

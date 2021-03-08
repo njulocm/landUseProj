@@ -1,8 +1,10 @@
 from torchvision import transforms as T
 import utils.transforms_DL as T_DL
 
+random_seed = 6666
 num_classes = 10
 input_channel = 4
+
 device = 'cuda:0'
 fold = 0  # 第几折数据
 root_dir = '/home/cm/landUseProj/'
@@ -54,6 +56,7 @@ dataset_cfg = dict(
 )
 
 model_cfg = dict(
+
     # type='SMP',
     type='CheckPoint',
     backbone='efficientnet-b6',
@@ -88,7 +91,7 @@ test_cfg = dict(
     # ensemble_weight=[0.25 / 5] * 5 + [0.25 / 5] * 5 + [0.50 / 4] * 4,  # 模型权重，缺省为平均
     dataset='test_dataset',
     batch_size=train_cfg['batch_size'],
-    num_workers=train_cfg['num_workers'] * 2,
+    num_workers=train_cfg['num_workers'],
     check_point_file=[
         # b6+swa
         # root_dir + '/code/checkpoint/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold0-0302/smp_unetpp_best.pth',
@@ -123,4 +126,5 @@ test_cfg = dict(
     ],
     out_dir=root_dir + '/prediction_result/b7_atte_swa_45-others_55-0307/',
     # out_dir=root_dir + '/prediction_result/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_crossVal-0307/',
+
 )
