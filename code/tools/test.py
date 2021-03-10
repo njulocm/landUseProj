@@ -41,6 +41,7 @@ def test_main(cfg):
 
     is_ensemble = test_cfg.setdefault(key='is_ensemble', default=False)
     is_adaBoost = test_cfg.setdefault(key='is_adaBoost', default=False)
+    boost_type = test_cfg.setdefault(key='boost_type', default=None)
 
     if not is_ensemble:  # 没有使用多模型集成
         # 加载模型
@@ -63,7 +64,7 @@ def test_main(cfg):
         for ckpt in test_cfg.check_point_file:
             models.append(torch.load(ckpt, map_location=device))
 
-        if test_cfg.boost_type is None:  # 采用加权平均集成
+        if boost_type is None:  # 采用加权平均集成
             # 获取模型集成的权重
             ensemble_weight = test_cfg.setdefault(key='ensemble_weight', default=[1.0 / len(models)] * len(models))
             if len(ensemble_weight) != len(models):
@@ -86,9 +87,9 @@ def test_main(cfg):
                              device=device,
                              batch_size=test_cfg.batch_size)
         else:  # 采用boost集成
-            if test_cfg.boost_type == 'adaBoost':  # 采用adaBoost集成
+            if boost_type == 'adaBoost':  # 采用adaBoost集成
                 boost_model = joblib.load(test_cfg.boost_ckpt_file)
-            elif test_cfg.boost_type == 'XGBoost':  # 采用XGBoost集成
+            elif boost_type == 'XGBoost':  # 采用XGBoost集成
                 boost_model = xgboost.Booster(model_file=test_cfg.boost_ckpt_file)
 
             if test_cfg.is_evaluate:
@@ -96,7 +97,7 @@ def test_main(cfg):
                                                dataloader=dataloader,
                                                device=device,
                                                num_classes=cfg.num_classes,
-                                               boost_type=test_cfg.boost_type,
+                                               boost_type=boost_type,
                                                boost_model=boost_model)
                 print('miou is : {:.4f}'.format(miou))
                 return
@@ -104,7 +105,7 @@ def test_main(cfg):
             # 预测结果
             ensemble_boost_predict(models=models,
                                    boost_model=boost_model,
-                                   boost_type=test_cfg.boost_type,
+                                   boost_type=boost_type,
                                    dataset=dataset,
                                    out_dir=test_cfg.out_dir,
                                    device=device,
