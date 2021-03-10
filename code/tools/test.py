@@ -40,7 +40,6 @@ def test_main(cfg):
                             worker_init_fn=_init_fn())
 
     is_ensemble = test_cfg.setdefault(key='is_ensemble', default=False)
-    is_adaBoost = test_cfg.setdefault(key='is_adaBoost', default=False)
     boost_type = test_cfg.setdefault(key='boost_type', default=None)
 
     if not is_ensemble:  # 没有使用多模型集成
@@ -140,7 +139,7 @@ def predict(model, dataloader, out_dir, device, sample_index_list):
                 out_name = out_dir + f'/{sample_index}.png'
                 cv2.imwrite(out_name, pred[i] + 1)  # 提交的结果需要1~10
     # 把输出结果打成压缩包
-    os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
+    # os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
 
 
 def ensemble_predict(models, ensemble_weight, dataset, out_dir, device, batch_size=128):
@@ -171,7 +170,7 @@ def ensemble_predict(models, ensemble_weight, dataset, out_dir, device, batch_si
                 cv2.imwrite(out_name, pred[i] + 1)  # 提交的结果需要1~10
 
     # 把输出结果打成压缩包
-    os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
+    # os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
 
 
 def ensemble_boost_predict(models, boost_model, boost_type, dataset, out_dir, device, batch_size=128):
@@ -211,7 +210,7 @@ def ensemble_boost_predict(models, boost_model, boost_type, dataset, out_dir, de
                 cv2.imwrite(out_name, pred[i] + 1)  # 提交的结果需要1~10
 
     # 把输出结果打成压缩包
-    os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
+    # os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
 
 
 def ensemble_evaluate(models, dataloader, ensemble_weight, device, num_classes=10):
