@@ -5,7 +5,7 @@ random_seed = 6666
 num_classes = 10
 input_channel = 4
 
-device = 'cuda:0'
+device = 'cuda:1'
 fold = 0  # 第几折数据
 root_dir = '/home/cm/landUseProj/'
 # logfile = root_dir + f'/code/log/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_swa1e5_fold{fold}-0303.log'
@@ -42,8 +42,10 @@ test_transform = T.Compose([
 dataset_cfg = dict(
     # train_dir=root_dir + '/tcdata/suichang_round1_train_210120',
     train_dir=root_dir + f'/tcdata/train{fold}',
-    val_dir=root_dir + f'/tcdata/validation{fold}',
-    test_dir=root_dir + '/tcdata/suichang_round1_test_partA_210120',
+    # val_dir=root_dir + f'/tcdata/validation{fold}',
+    val_dir=root_dir + '/tcdata/last1000',
+    # test_dir=root_dir + '/tcdata/suichang_round1_test_partA_210120',
+    test_dir=root_dir + '/tcdata/suichang_round1_test_partB_210120',
     input_channel=input_channel,  # 使用几个通道作为输入
     train_ratio=0.8,
     val_ratio=0.2,
@@ -89,10 +91,11 @@ test_cfg = dict(
     is_ensemble=True,
     # ensemble_weight=[0.4 / 5] * 5 + [0.6 / 4] * 4,  # 模型权重，缺省为平均
     ensemble_weight=[0.2 / 5] * 5 + [0.2 / 5] * 5 + [0.6 / 4] * 4,  # 模型权重，缺省为平均
-    is_adaBoost=True,
-    adaBoost_file='/home/cm/landUseProj/code/checkpoint/adaBoost/adaBoost_b6_b7_others.pkl',
+    boost_type=None,  # None代表加权集成
+    # boost_ckpt_file='/home/cm/landUseProj/code/checkpoint/adaBoost/adaBoost_b6_b7_others.pkl',
+    boost_ckpt_file='/home/cm/landUseProj/code/checkpoint/adaBoost/xgBoost_b6_b7_other_sample200_iter1000.pkl',
     dataset='test_dataset',
-    batch_size=train_cfg['batch_size'],
+    batch_size=8,
     num_workers=train_cfg['num_workers'],
     check_point_file=[
         # b6+swa
@@ -119,8 +122,8 @@ test_cfg = dict(
         '/home/cailinhao/landUseProj_master/landUseProj/code/checkpoint/smp_unetpp_swa1e4_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0226/smp_unetpp_best-epoch47.pth',
         # 0.3969
     ],
-    # out_dir=root_dir + '/prediction_result/b7_atte_swa_4-others_6-0308/',
+    # out_dir=root_dir + '/prediction_result/partB_b7_atte_swa_4-others_6-0310/',
     # out_dir=root_dir + '/prediction_result/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_crossVal-0307/',
-    # out_dir=root_dir + '/prediction_result/b6_swa_2_b7_atte_swa_2-others_6-0308/',
-    out_dir=root_dir + '/prediction_result/adaBoost_b6_b7_others-0308/',
+    out_dir=root_dir + '/prediction_result/partB_b6_swa_2_b7_atte_swa_2-others_6-0310/',
+    # out_dir=root_dir + '/prediction_result/adaBoost_b6_b7_others_reverse-0308/',
 )

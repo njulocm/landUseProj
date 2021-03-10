@@ -29,6 +29,7 @@ class LandDataset(Dataset):
         index_list = [filename.split('.')[0] for filename in os.listdir(self.DIR)]
         index_list = list(set(index_list))
         index_list.sort()
+        # index_list.reverse() # 反序，需要注释掉！！！！
         return index_list
 
     def _get_class_dict(self):  # 获得所有数据的index
