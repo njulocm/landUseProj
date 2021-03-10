@@ -3,8 +3,7 @@ from utils import evaluate_model, LandDataset
 import torch
 import torch.nn as nn
 from torch.utils.data import random_split, DataLoader
-from utils import evaluate_model, evaluate_cls_model, evaluate_unet3p_model, LandDataset, adjust_learning_rate, \
-    moving_average, fix_bn, bn_update
+from utils import evaluate_model, LandDataset, fast_hist, compute_miou
 import torch.nn.functional as F
 from tqdm import tqdm
 import ttach as tta
@@ -12,6 +11,7 @@ import numpy as np
 import cv2
 import os
 import joblib
+import xgboost
 
 
 def test_main(cfg):
@@ -40,7 +40,7 @@ def test_main(cfg):
                             worker_init_fn=_init_fn())
 
     is_ensemble = test_cfg.setdefault(key='is_ensemble', default=False)
-    is_adaBoost = test_cfg.setdefault(key='is_adaBoost', default=False)
+    boost_type = test_cfg.setdefault(key='boost_type', default=None)
 
     if not is_ensemble:  # 没有使用多模型集成
         # 加载模型
@@ -63,20 +63,20 @@ def test_main(cfg):
         for ckpt in test_cfg.check_point_file:
             models.append(torch.load(ckpt, map_location=device))
 
-        if is_adaBoost:  # 采用adaBoost集成
-            adaBoost_model = joblib.load(test_cfg.adaBoost_file)
-            # 预测结果
-            ensemble_adaBoost_pridict(models=models,
-                                      adaBoost_model=adaBoost_model,
-                                      dataset=dataset,
-                                      out_dir=test_cfg.out_dir,
-                                      device=device,
-                                      batch_size=test_cfg.batch_size)
-        else:  # 采用加权平均集成
+        if boost_type is None:  # 采用加权平均集成
             # 获取模型集成的权重
             ensemble_weight = test_cfg.setdefault(key='ensemble_weight', default=[1.0 / len(models)] * len(models))
             if len(ensemble_weight) != len(models):
                 raise Exception('权重个数错误！')
+
+            if test_cfg.is_evaluate:  # 评估模式
+                miou = ensemble_evaluate(models=models,
+                                         dataloader=dataloader,
+                                         ensemble_weight=ensemble_weight,
+                                         device=device,
+                                         num_classes=cfg.num_classes)
+                print('miou is : {:.4f}'.format(miou))
+                return
 
             # 预测结果
             ensemble_predict(models=models,
@@ -85,6 +85,30 @@ def test_main(cfg):
                              out_dir=test_cfg.out_dir,
                              device=device,
                              batch_size=test_cfg.batch_size)
+        else:  # 采用boost集成
+            if boost_type == 'adaBoost':  # 采用adaBoost集成
+                boost_model = joblib.load(test_cfg.boost_ckpt_file)
+            elif boost_type == 'XGBoost':  # 采用XGBoost集成
+                boost_model = xgboost.Booster(model_file=test_cfg.boost_ckpt_file)
+
+            if test_cfg.is_evaluate:
+                miou = ensemble_boost_evaluate(models=models,
+                                               dataloader=dataloader,
+                                               device=device,
+                                               num_classes=cfg.num_classes,
+                                               boost_type=boost_type,
+                                               boost_model=boost_model)
+                print('miou is : {:.4f}'.format(miou))
+                return
+
+            # 预测结果
+            ensemble_boost_predict(models=models,
+                                   boost_model=boost_model,
+                                   boost_type=boost_type,
+                                   dataset=dataset,
+                                   out_dir=test_cfg.out_dir,
+                                   device=device,
+                                   batch_size=test_cfg.batch_size)
 
 
 def predict(model, dataloader, out_dir, device, sample_index_list):
@@ -115,7 +139,7 @@ def predict(model, dataloader, out_dir, device, sample_index_list):
                 out_name = out_dir + f'/{sample_index}.png'
                 cv2.imwrite(out_name, pred[i] + 1)  # 提交的结果需要1~10
     # 把输出结果打成压缩包
-    os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
+    # os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
 
 
 def ensemble_predict(models, ensemble_weight, dataset, out_dir, device, batch_size=128):
@@ -146,10 +170,10 @@ def ensemble_predict(models, ensemble_weight, dataset, out_dir, device, batch_si
                 cv2.imwrite(out_name, pred[i] + 1)  # 提交的结果需要1~10
 
     # 把输出结果打成压缩包
-    os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
+    # os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
 
 
-def ensemble_adaBoost_pridict(models, adaBoost_model, dataset, out_dir, device, batch_size=128):
+def ensemble_boost_predict(models, boost_model, boost_type, dataset, out_dir, device, batch_size=128):
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
@@ -174,13 +198,75 @@ def ensemble_adaBoost_pridict(models, adaBoost_model, dataset, out_dir, device, 
                     out_all = torch.cat((out_all, temp_out), dim=1)  # batch*model*chnl*w*h
             out_all = out_all.permute(0, 3, 4, 1, 2)  # batch*w*h*model*chnl
             out_all = out_all.reshape((-1, out_all.shape[-2] * out_all.shape[-1]))  # (batch*w*h)*(model*chnl)
-            out_all = out_all.cpu()
-            pred = adaBoost_model.predict(out_all)  # (batch*w*h)
-            pred = pred.reshape((-1, 256, 256)) # batch*w*h
+            out_all = out_all.cpu().numpy()
+            if boost_type == 'adaBoost':
+                pred = boost_model.predict(out_all)  # (batch*w*h)
+            elif boost_type == 'XGBoot':
+                pred = boost_model.predict(xgboost.DMatrix(data=out_all))  # (batch*w*h)
+            pred = pred.reshape((-1, 256, 256))  # batch*w*h
             for i in range(len(pred)):
                 sample_index = sample_index_list[batch * batch_size + i]
                 out_name = out_dir + f'/{sample_index}.png'
                 cv2.imwrite(out_name, pred[i] + 1)  # 提交的结果需要1~10
 
     # 把输出结果打成压缩包
-    os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
+    # os.system(f'zip {out_dir[:-1]}.zip {out_dir}*')
+
+
+def ensemble_evaluate(models, dataloader, ensemble_weight, device, num_classes=10):
+    hist_sum = np.zeros((num_classes, num_classes))
+    with torch.no_grad():
+        for batch, item in tqdm(enumerate(dataloader)):
+            data, label = item
+            data = data.to(device)
+            out_avg = torch.zeros(size=(len(data), 10, 256, 256)).to(device)
+            model_num = 0
+            for model in models:
+                temp_out = model(data)
+                temp_out = torch.nn.functional.softmax(temp_out, dim=1)  # 转成概率
+                out_avg += ensemble_weight[model_num] * temp_out
+                model_num += 1
+            pred = torch.argmax(out_avg, dim=1).cpu().numpy()
+            label = label.cpu().numpy()
+            for i in range(len(pred)):
+                hist = fast_hist(label[i], pred[i], num_classes)
+                hist_sum += hist
+    miou = compute_miou(hist_sum)
+    return miou
+
+
+def ensemble_boost_evaluate(models, dataloader, device, num_classes=10, boost_type=None, boost_model=None):
+    hist_sum = np.zeros((num_classes, num_classes))
+    with torch.no_grad():
+        for batch, item in tqdm(enumerate(dataloader)):
+            data, label = item
+            data = data.to(device)
+            out_all = None
+            for model in models:
+                temp_out = model(data)
+                temp_out = torch.nn.functional.softmax(temp_out, dim=1)  # 转成概率
+                temp_out = torch.unsqueeze(temp_out, dim=1)  # batch*model*chnl*w*h
+                if out_all is None:
+                    out_all = temp_out
+                else:
+                    out_all = torch.cat((out_all, temp_out), dim=1)  # batch*model*chnl*w*h
+
+            # 把模型输出转成预测的标签pred
+            # out_all = torch.argmax(out_all, dim=2)
+            # out_all = out_all.permute(0, 2, 3, 1)
+            # out_all = out_all.reshape((-1, 14))
+            out_all = out_all.permute(0, 3, 4, 1, 2)  # batch*w*h*model*chnl
+            out_all = out_all.reshape((-1, out_all.shape[-2] * out_all.shape[-1]))  # (batch*w*h)*(model*chnl)
+            out_all = out_all.cpu().numpy()
+            if boost_type == 'adaBoost':
+                pred = boost_model.predict(out_all)  # (batch*w*h)
+            elif boost_type == 'XGBoost':
+                pred = boost_model.predict(xgboost.DMatrix(data=out_all))  # (batch*w*h)
+            pred = pred.reshape((-1, 256, 256)).astype(np.int64)  # batch*w*h
+
+            label = label.cpu().numpy()
+            for i in range(len(pred)):
+                hist = fast_hist(label[i], pred[i], num_classes)
+                hist_sum += hist
+    miou = compute_miou(hist_sum)
+    return miou

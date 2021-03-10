@@ -20,7 +20,7 @@ def set_seed(seed=0):
     torch.backends.cudnn.benchmark = False
 
 
-def extract_feature(label, prob, max_num=10):
+def extract_feature(label, prob, max_num=100):
     # label: 256*256
     # prob: model*10*256*256
     feature_out = None
@@ -44,7 +44,7 @@ def extract_feature(label, prob, max_num=10):
     return feature_out, land_class_out
 
 
-def extract_feature_main(dataset, ckpt_files, max_num=10, batch_size=32, device='cuda:0'):
+def extract_feature_main(dataset, ckpt_files, max_num=100, batch_size=32, device='cuda:0'):
     models = []
     for ckpt in ckpt_files:
         models.append(torch.load(ckpt, map_location=device))
@@ -57,7 +57,7 @@ def extract_feature_main(dataset, ckpt_files, max_num=10, batch_size=32, device=
 
     feature = None
     land_class = None
-    write_out_num = 10000  # 从采集到10000个数据开始，每多采集到10000个，就输出一次（覆盖之前结果）
+    write_out_num = 10000  # 从采集到10000个数据开始，每多采集到100000个，就输出一次（覆盖之前结果）
     with torch.no_grad():
         for batch, item in tqdm(enumerate(dataloader)):
             data, label = item
@@ -85,12 +85,12 @@ def extract_feature_main(dataset, ckpt_files, max_num=10, batch_size=32, device=
 
                 # 输出
                 if len(feature) > write_out_num:
-                    np.save('/home/cm/landUseProj/user_data/feature.npy', feature)
-                    np.save('/home/cm/landUseProj/user_data/land_class.npy', land_class)
-                    write_out_num += 10000
+                    np.save('/home/cm/landUseProj/user_data/feature_sample200.npy', feature)
+                    np.save('/home/cm/landUseProj/user_data/land_class_sample200.npy', land_class)
+                    write_out_num += 100000
 
-    np.save('/home/cm/landUseProj/user_data/feature.npy', feature)
-    np.save('/home/cm/landUseProj/user_data/land_class.npy', land_class)
+    np.save('/home/cm/landUseProj/user_data/feature_sample200.npy', feature)
+    np.save('/home/cm/landUseProj/user_data/land_class_sample200.npy', land_class)
     # np.savetxt('/home/cm/landUseProj/user_data/feature.csv', feature, delimiter=',')
     # np.savetxt('/home/cm/landUseProj/user_data/land_class.csv', land_class, delimiter=',')
 
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     input_channel = 4
     device = 'cuda:0'
     batch_size = 32
-    max_num = 10
+    max_num = 200
     root_dir = '/home/cm/landUseProj/'
     train_dir = root_dir + '/tcdata/suichang_round1_train_210120'
     train_mean = [0.485, 0.456, 0.406, 0.5]

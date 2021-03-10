@@ -6,8 +6,9 @@ random_seed = 6666
 num_classes = 10
 input_channel = 4
 
-device = 'cuda:1' if torch.cuda.is_available() else 'cpu'
-logfile = f'../user_data/log/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0224.log'
+device = 'cuda:1'
+fold = 0  # 第几折数据
+logfile = f'../user_data/log/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_swa1e5_fold{fold}-0303.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
 train_std = [0.229, 0.224, 0.225, 0.25]
@@ -38,8 +39,9 @@ test_transform = T.Compose([
 ])
 
 dataset_cfg = dict(
-    train_dir='../tcdata/suichang_round1_train_210120',
-    val_dir='../tcdata/suichang_round1_train_210120',
+    # train_dir=root_dir + '/tcdata/suichang_round1_train_210120',
+    train_dir=f'../tcdata/train{fold}',
+    val_dir=f'../tcdata/validation{fold}',
     # test_dir='../tcdata/suichang_round1_test_partA_210120',
     test_dir='../tcdata/suichang_round1_test_partB_210120',
     input_channel=input_channel,  # 使用几个通道作为输入
@@ -54,15 +56,16 @@ dataset_cfg = dict(
 )
 
 model_cfg = dict(
-    type='SMP',
-    # type='CheckPoint',
-    backbone='efficientnet-b7',
+
+    # type='SMP',
+    type='CheckPoint',
+    backbone='efficientnet-b6',
     encoder_weights='imagenet',
     input_channel=input_channel,
     num_classes=num_classes,
     pretrained=True,
     device=device,
-    check_point_file=f'../user_data/checkpoint/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0224/smp_unetpp_best.pth',
+    check_point_file=f'../user_data/checkpoint/smp_unetpp_pretrain_b6_chnl4_rgb_argu_geometry_fold{fold}-0310/smp_unetpp_best.pth',
 )
 
 train_cfg = dict(
@@ -70,12 +73,12 @@ train_cfg = dict(
     batch_size=8,
     num_epochs=100,
     optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),
-    lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5, last_epoch=-1),
-    # lr_scheduler_cfg=dict(policy='cos', T_0=96, T_mult=1, eta_min=1e-5, last_epoch=-1),  # swa使用
+    # lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5, last_epoch=-1),
+    lr_scheduler_cfg=dict(policy='cos', T_0=96, T_mult=1, eta_min=1e-5, last_epoch=-1),  # swa使用
     auto_save_epoch=5,  # 每隔几轮自动保存模型
     is_PSPNet=False,  # 不是PSPNet都设为false
     is_swa=True,
-    check_point_file=f'../user_data/checkpoint/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0224/smp_unetpp_best.pth',
+    check_point_file=f'../user_data/checkpoint/smp_unetpp_pretrain_b6_chnl4_rgb_argu_geometry_fold{fold}-0310/smp_unetpp_best.pth',
 )
 
 test_cfg = dict(
