@@ -19,7 +19,13 @@ cd landUseProj/code
 ./train.sh
 ```
 
-# 测试
+# 预测
+所有待集成的模型位于./user_data/checkpoint/路径下，预测时需要在配置文件smp_unetpp_config.py中设置好相关checkpoint的路径（已设置好），然后运行以下命令：
+```
+cd landUseProj/code
+./test.sh
+```
+
 
 
 
