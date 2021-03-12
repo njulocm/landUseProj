@@ -278,6 +278,7 @@ def train_main(cfg):
     best_miou = 0
     train_loss = 10  # 设置一个初始值
     logger.info('开始在{}上训练{}模型...'.format(device, model_cfg.type))
+    logger.info('补充信息：{}\n'.format(cfg.setdefault(key='info', default='None')))
     for epoch in range(train_cfg.num_epochs):
         print()
         print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
