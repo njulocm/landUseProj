@@ -23,7 +23,7 @@ if __name__ == '__main__':
     mode = sys.argv[2]  # 运行模式，包括train和test
 
     # 读取配置文件
-    cfg = Config.fromfile('config/' + cfg_filename)
+    cfg = Config.fromfile(cfg_filename)
     print("config filename: " + str(cfg_filename))
 
     set_seed(cfg.random_seed)

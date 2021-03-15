@@ -7,8 +7,10 @@ num_classes = 10
 input_channel = 4
 
 device = 'cuda:1'
-fold = 0  # 第几折数据
-logfile = f'../user_data/log/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_swa1e5_fold{fold}-0303.log'
+fold = 1  # 第几折数据
+info='unetpp-b6，fold1，在44+47的基础上，再训练300轮' # 可以在日志开头记录一些补充信心
+logfile = f'../user_data/log/smp_unetpp_pretrain_b6_chnl4_rgb_argu_geometry_fold{fold}-0310.log'
+# logfile = f'../user_data/log/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_swa1e5_fold{fold}-0303.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
 train_std = [0.229, 0.224, 0.225, 0.25]
@@ -56,7 +58,6 @@ dataset_cfg = dict(
 )
 
 model_cfg = dict(
-
     # type='SMP',
     type='CheckPoint',
     backbone='efficientnet-b6',
@@ -71,11 +72,11 @@ model_cfg = dict(
 train_cfg = dict(
     num_workers=6,
     batch_size=8,
-    num_epochs=100,
+    num_epochs=300,
     optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),
-    # lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5, last_epoch=-1),
-    lr_scheduler_cfg=dict(policy='cos', T_0=96, T_mult=1, eta_min=1e-5, last_epoch=-1),  # swa使用
-    auto_save_epoch=5,  # 每隔几轮自动保存模型
+    lr_scheduler_cfg=dict(policy='cos', T_0=96, T_mult=2, eta_min=1e-5, last_epoch=-1),
+    # lr_scheduler_cfg=dict(policy='cos', T_0=1, T_mult=1, eta_min=1e-5, last_epoch=-1),  # swa使用
+    auto_save_epoch=20,  # 每隔几轮自动保存模型
     is_PSPNet=False,  # 不是PSPNet都设为false
     is_swa=True,
     check_point_file=f'../user_data/checkpoint/smp_unetpp_pretrain_b6_chnl4_rgb_argu_geometry_fold{fold}-0310/smp_unetpp_best.pth',

@@ -1,2 +1,2 @@
 #!/bin/bash
-python main.py smp_unetpp_config.py train
+python main.py ./config/smp_unetpp_config.py train
