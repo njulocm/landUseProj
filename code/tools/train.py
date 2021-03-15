@@ -319,7 +319,7 @@ def train_main(cfg):
             torch.save(model, model_cfg.check_point_file)
 
         if epoch % auto_save_epoch == auto_save_epoch - 1:  # 每auto_save_epoch轮保存一次
-            model_file = model_cfg.check_point_file.split('.')[0] + '-epoch{}.pth'.format(epoch)
+            model_file = model_cfg.check_point_file.split('.pth')[0] + '-epoch{}.pth'.format(epoch)
             torch.save(model, model_file)
 
         # 打印中间结果

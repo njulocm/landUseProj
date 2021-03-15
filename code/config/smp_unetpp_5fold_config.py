@@ -6,7 +6,7 @@ random_seed = 6666
 num_classes = 10
 input_channel = 4
 
-device = 'cuda:3'
+device = 'cuda:1'
 fold = 1  # 第几折数据
 info='unetpp-b6，fold1，在44+47的基础上，再训练300轮' # 可以在日志开头记录一些补充信心
 logfile = f'../user_data/log/smp_unetpp_pretrain_b6_chnl4_rgb_argu_geometry_fold{fold}-0310.log'
