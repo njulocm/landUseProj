@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import torchvision.transforms as T
+from PIL import Image
 
 
 # def get_transform(transform_cfg):
@@ -55,7 +56,8 @@ class LandDataset(Dataset):
     def __getitem__(self, index):
         '''获得index序号的样本'''
         filename = self.DIR + '/' + self.index_list[index]  # 不含后缀
-        data = cv2.imread(filename + '.tif', cv2.IMREAD_UNCHANGED)[..., :self.input_channel]
+        data = np.array(Image.open(filename + '.tif'), dtype=np.float32)
+        # data = cv2.imread(filename + '.tif', cv2.IMREAD_UNCHANGED)[..., :self.input_channel]
         # data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
         if self.mode == 'test':
             mask = 0  # 测试集没有label，随便给一个
