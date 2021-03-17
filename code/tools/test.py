@@ -21,12 +21,12 @@ def test_main(cfg):
     device = cfg.device
 
     if test_cfg.dataset == 'val_dataset':
-        dataset = LandDataset(DIR=dataset_cfg.val_dir,
+        dataset = LandDataset(DIR_list=dataset_cfg.val_dir_list,
                               mode='val',
                               input_channel=dataset_cfg.input_channel,
                               transform=dataset_cfg.val_transform)
     elif test_cfg.dataset == 'test_dataset':
-        dataset = LandDataset(dataset_cfg.test_dir,
+        dataset = LandDataset(DIR_list=dataset_cfg.test_dir_list,
                               mode='test',
                               input_channel=dataset_cfg.input_channel,
                               transform=dataset_cfg.test_transform)

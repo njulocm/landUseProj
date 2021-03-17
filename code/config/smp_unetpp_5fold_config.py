@@ -8,7 +8,7 @@ input_channel = 4
 
 device = 'cuda:1'
 fold = 1  # 第几折数据
-info='unetpp-b6，fold1，在44+47的基础上，再训练300轮' # 可以在日志开头记录一些补充信心
+info='unetpp-b6，fold1，在44+47的基础上，再训练300轮' # 可以在日志开头记录一些补充信息
 logfile = f'../user_data/log/smp_unetpp_pretrain_b6_chnl4_rgb_argu_geometry_fold{fold}-0310.log'
 # logfile = f'../user_data/log/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_swa1e5_fold{fold}-0303.log'
 

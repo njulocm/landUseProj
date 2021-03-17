@@ -105,7 +105,7 @@ class OnlineInfer(inferServer):
         img = base64.b64decode(bast64_data)
         img = Image.open(BytesIO(bytearray(img)))
         img = np.array(img, dtype=np.float32)
-        img[:, :, [0, 1, 2]] = img[:, :, [0, 1, 2]] / img[:, :, [3]] * 256
+        img[:, :, [0, 1, 2]] = img[:, :, [0, 1, 2]] * img[:, :, [3]] / 256.0
         img[:, :, [0, 2]] = img[:, :, [2, 0]]  # 调换通道
         img = torch.Tensor(img).cuda()
         return img  # 应该是256*256*4
