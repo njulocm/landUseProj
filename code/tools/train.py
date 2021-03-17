@@ -189,14 +189,22 @@ def train_main(cfg):
 
     #
     # 构建数据集
-    train_dataset = LandDataset(DIR=dataset_cfg.train_dir,
+    train_dataset = LandDataset(DIR_list=dataset_cfg.train_dir_list,
                                 mode='train',
                                 input_channel=dataset_cfg.input_channel,
                                 transform=dataset_cfg.train_transform)
-    val_dataset = LandDataset(DIR=dataset_cfg.val_dir,
-                              mode='val',
-                              input_channel=dataset_cfg.input_channel,
-                              transform=dataset_cfg.val_transform)
+    split_val_from_train_ratio = dataset_cfg.setdefault(key='split_val_from_train_ratio', default=None)
+    if split_val_from_train_ratio is None:
+        val_dataset = LandDataset(DIR_list=dataset_cfg.val_dir_list,
+                                  mode='val',
+                                  input_channel=dataset_cfg.input_channel,
+                                  transform=dataset_cfg.val_transform)
+    else:
+        val_size = int(len(train_dataset) * split_val_from_train_ratio)
+        train_size = len(train_dataset) - val_size
+        train_dataset, val_dataset = random_split(train_dataset,
+                                                  [train_size, val_size],
+                                                  generator=torch.manual_seed(cfg.random_seed))
 
     # 构建dataloader
     def _init_fn():
@@ -269,7 +277,7 @@ def train_main(cfg):
         os.mkdir(check_point_dir)
 
     # 开始训练
-    auto_save_epoch = train_cfg.setdefault(key='auto_save_epoch', default=5)  # 每隔几轮保存一次模型，默认为5
+    auto_save_epoch_list = train_cfg.setdefault(key='auto_save_epoch_list', default=5)  # 每隔几轮保存一次模型，默认为5
     is_PSPNet = train_cfg.setdefault(key='is_PSPNet', default=False)  # 是否是训练PSPNet，默认为False
     train_loss_list = []
     val_loss_list = []
@@ -318,7 +326,7 @@ def train_main(cfg):
             best_miou = val_miou
             torch.save(model, model_cfg.check_point_file)
 
-        if epoch % auto_save_epoch == auto_save_epoch - 1:  # 每auto_save_epoch轮保存一次
+        if epoch in auto_save_epoch_list:  # 如果再需要保存的轮次中，则保存
             model_file = model_cfg.check_point_file.split('.pth')[0] + '-epoch{}.pth'.format(epoch)
             torch.save(model, model_file)
 

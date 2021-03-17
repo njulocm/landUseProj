@@ -6,8 +6,8 @@ random_seed = 6666
 num_classes = 10
 input_channel = 4
 device = 'cuda:1' if torch.cuda.is_available() else 'cpu'
-info = 'SmpUnetpp-b7，scse-atte，全数据训练50轮'  # 可以在日志开头记录一些补充信息
-logfile = f'../user_data/log/round2_b7_SmpUnetpp-alltrain-0317.log'
+info = 'SmpUnetpp-resnest200e，全数据训练50轮'  # 可以在日志开头记录一些补充信息
+logfile = f'../user_data/log/round2_resnest200e_SmpUnetpp-alltrain-0317.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
 train_std = [0.229, 0.224, 0.225, 0.25]
@@ -58,14 +58,14 @@ dataset_cfg = dict(
 model_cfg = dict(
     type='SmpUnetpp',
     # type='CheckPoint',
-    backbone='efficientnet-b7',
-    decoder_attention_type='scse',
+    backbone='timm-resnest200e',
+    decoder_attention_type=None,
     encoder_weights='imagenet',
     input_channel=input_channel,
     num_classes=num_classes,
     pretrained=True,
     device=device,
-    check_point_file=f'../user_data/checkpoint/round2_b7_SmpUnetpp-alltrain-0317/SmpUnetpp_best.pth',
+    check_point_file=f'../user_data/checkpoint/round2_resnest200e_SmpUnetpp-alltrain-0317/SmpUnetpp_best.pth',
 )
 
 train_cfg = dict(
@@ -78,7 +78,7 @@ train_cfg = dict(
     auto_save_epoch_list=[20, 44, 92, 188, 380],  # 需要保存模型的轮数
     is_PSPNet=False,  # 不是PSPNet都设为false
     is_swa=False,
-    # check_point_file=f'../user_data/checkpoint/round2_b7_SmpUnetpp-alltrain-0317/SmpUnetpp_best.pth',
+    # check_point_file=f'../user_data/checkpoint/round2_resnest200e_SmpUnetpp-alltrain-0317/SmpUnetpp_best.pth',
 )
 
 test_cfg = dict(
