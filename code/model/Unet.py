@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch.utils.data
 import torch
 
-from .crfasrnn.crfrnn import CrfRnn
+# from .crfasrnn.crfrnn import CrfRnn
 
 
 class conv_block(nn.Module):
@@ -125,17 +125,17 @@ class U_Net(nn.Module):
         return out
 
 
-class UnetCRF(nn.Module):
-    def __init__(self, in_ch=3, out_ch=10, num_iterations=5, crf_init_params=None):
-        super(UnetCRF, self).__init__()
-        self.unet = U_Net(in_ch=in_ch, out_ch=out_ch)
-        self.crfrnn = CrfRnn(num_labels=out_ch,
-                             num_iterations=num_iterations,
-                             crf_init_params=None)
-
-    def forward(self, x):
-        out = self.unet(x)
-        return self.crfrnn(x, out)
+# class UnetCRF(nn.Module):
+#     def __init__(self, in_ch=3, out_ch=10, num_iterations=5, crf_init_params=None):
+#         super(UnetCRF, self).__init__()
+#         self.unet = U_Net(in_ch=in_ch, out_ch=out_ch)
+#         self.crfrnn = CrfRnn(num_labels=out_ch,
+#                              num_iterations=num_iterations,
+#                              crf_init_params=None)
+#
+#     def forward(self, x):
+#         out = self.unet(x)
+#         return self.crfrnn(x, out)
 
 
 class Recurrent_block(nn.Module):

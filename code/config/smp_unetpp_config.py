@@ -33,7 +33,7 @@ val_transform = T.Compose([
 ])
 
 test_transform = T.Compose([
-    T.ToTensor(),
+    # T.ToTensor(),
     T.Normalize(mean=test_mean[:input_channel], std=test_std[:input_channel]),
 ])
 
@@ -81,9 +81,12 @@ train_cfg = dict(
 test_cfg = dict(
     is_predict=True,  # 是否是预测分类结果
     is_evaluate=False,  # 是否评估模型，也就是计算mIoU
+    test_transform=test_transform,
     is_crf=False,
     tta_mode=None,  # 'd4'
     is_ensemble=True,
+    # processes_num=4, # 进程数，默认为4，并行推理才会用到
+    device_available=['cuda:0'], # 可用的推理设备，默认只用'cuda:0'
     # ensemble_weight=[0.4 / 5] * 5 + [0.6 / 4] * 4,  # 模型权重，缺省为平均
     # ensemble_weight=[0.2 / 5] * 5 + [0.2 / 5] * 5 + [0.6 / 4] * 4,  # 模型权重，缺省为平均
     boost_type=None,  # None代表加权集成
@@ -110,12 +113,12 @@ test_cfg = dict(
         # others
         # '../user_data/checkpoint/smp_unetpp_crf_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0221/smp_unetpp_crf_best.pth',
         # # 0.3985
-        # '../user_data/checkpoint/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0224/smp_unetpp_best.pth',
-        # # # 0.3970
+        '../user_data/checkpoint/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0224/smp_unetpp_best.pth',
+        # # 0.3970
         # '../user_data/checkpoint/smp_unetpp_atten_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0225/smp_unetpp_best.pth',
-        # # # 0.3895
-        '../user_data/checkpoint/smp_unetpp_swa1e4_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0226/smp_unetpp_best-epoch47.pth',
-        # 0.3969
+        # # 0.3895
+        # '../user_data/checkpoint/smp_unetpp_swa1e4_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0226/smp_unetpp_best-epoch47.pth',
+        # # 0.3969
     ],
     out_dir='../prediction_result/',
     # out_dir='../prediction_result/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_crossVal-0307/',
