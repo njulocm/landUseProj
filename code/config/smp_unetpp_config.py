@@ -5,7 +5,7 @@ import torch
 random_seed = 6666
 num_classes = 10
 input_channel = 4
-device = 'cuda:1' if torch.cuda.is_available() else 'cpu'
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 info = 'SmpUnetpp-b7，scse-atte，全数据训练50轮'  # 可以在日志开头记录一些补充信息
 logfile = f'../user_data/log/round2_b7_SmpUnetpp-alltrain-0317.log'
 

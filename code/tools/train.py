@@ -1,13 +1,10 @@
-from torch.utils.data.dataloader import DataLoader
-from utils import evaluate_model, evaluate_cls_model, evaluate_unet3p_model, LandDataset, adjust_learning_rate, \
-    moving_average, fix_bn, bn_update
+from utils import evaluate_model, LandDataset, moving_average, bn_update
 from model import build_model
 
 from pytorch_toolbelt import losses as L
-from .losses import DiceLoss, FocalLoss, SoftCrossEntropyLoss
+from utils.losses import DiceLoss, SoftCrossEntropyLoss
 
 import torch
-from torch import nn
 from torch.utils.data import random_split, DataLoader
 from torch.autograd import Variable
 from torch import optim
