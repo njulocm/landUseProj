@@ -174,6 +174,7 @@ def train_main(cfg):
     train_cfg = cfg.train_cfg
     dataset_cfg = cfg.dataset_cfg
     model_cfg = cfg.model_cfg
+    is_parallel = cfg.setdefault(key='is_parallel', default=False)
     device = cfg.device
 
     # 配置logger
@@ -218,12 +219,16 @@ def train_main(cfg):
                            map_location=device).to(device)  # device参数传在里面，不然默认是先加载到cuda:0，to之后再加载到相应的device上
         swa_model = torch.load(train_cfg.check_point_file,
                                map_location=device).to(device)  # device参数传在里面，不然默认是先加载到cuda:0，to之后再加载到相应的device上
+        if is_parallel:
+            model = torch.nn.DataParallel(model)
+            swa_model = torch.nn.DataParallel(swa_model)
         swa_n = 0
         parameters = swa_model.parameters()
     else:
         model = build_model(model_cfg).to(device)
+        if is_parallel:
+            model = torch.nn.DataParallel(model)
         parameters = model.parameters()
-    # model = torch.nn.DataParallel(model)
 
     # 定义优化器
     optimizer_cfg = train_cfg.optimizer_cfg
@@ -321,11 +326,17 @@ def train_main(cfg):
             val_loss_min = val_loss
             best_epoch = epoch
             best_miou = val_miou
-            torch.save(model, model_cfg.check_point_file)
+            if is_parallel:
+                torch.save(model.module, model_cfg.check_point_file)
+            else:
+                torch.save(model, model_cfg.check_point_file)
 
         if epoch in auto_save_epoch_list:  # 如果再需要保存的轮次中，则保存
             model_file = model_cfg.check_point_file.split('.pth')[0] + '-epoch{}.pth'.format(epoch)
-            torch.save(model, model_file)
+            if is_parallel:
+                torch.save(model, model_file)
+            else:
+                torch.save(model, model_file)
 
         # 打印中间结果
         end_time = time.time()

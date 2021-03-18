@@ -1,13 +1,20 @@
 from torchvision import transforms as T
 import utils.transforms_DL as T_DL
 import torch
+import os
 
 random_seed = 6666
 num_classes = 10
 input_channel = 4
-device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-info = 'SmpUnetpp-b7，scse-atte，全数据训练50轮'  # 可以在日志开头记录一些补充信息
-logfile = f'../user_data/log/round2_b7_SmpUnetpp-alltrain-0317.log'
+
+is_parallel = True  # 多卡训练设为True，单卡训练设为False，或者注释掉
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # 多卡训练，要设置可见的卡，device设为cuda即可，单卡直接注释掉，device正常设置
+os.environ["CUDA_VISIBLE_DEVICES"] = "2, 3"
+device = 'cuda'
+# device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
+info = 'SmpUnetpp-b7，scse-atte，两张卡训练，batch_size=16，全数据训练45轮'  # 可以在日志开头记录一些补充信息
+logfile = f'../user_data/log/round2_parallel_b7_SmpUnetpp-alltrain-0318.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
 train_std = [0.229, 0.224, 0.225, 0.25]
@@ -65,17 +72,19 @@ model_cfg = dict(
     num_classes=num_classes,
     pretrained=True,
     device=device,
-    check_point_file=f'../user_data/checkpoint/round2_b7_SmpUnetpp-alltrain-0317/SmpUnetpp_best.pth',
+    check_point_file=f'../user_data/checkpoint/round2_parallel_b7_SmpUnetpp-alltrain-0318/SmpUnetpp_best.pth',
 )
 
 train_cfg = dict(
     num_workers=6,
-    batch_size=8,
-    num_epochs=50,
+    batch_size=16,
+    num_epochs=45,
     optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),
-    lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5, last_epoch=-1),
+    # lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5, last_epoch=-1), # 单卡
+    lr_scheduler_cfg=dict(policy='cos', T_0=6, T_mult=2, eta_min=1e-5, last_epoch=-1),  # 双卡
     # lr_scheduler_cfg=dict(policy='cos', T_0=96, T_mult=1, eta_min=1e-5, last_epoch=-1),  # swa使用
-    auto_save_epoch_list=[20, 44, 92, 188, 380],  # 需要保存模型的轮数
+    # auto_save_epoch_list=[20, 44, 92, 188, 380],  # 需要保存模型的轮数
+    auto_save_epoch_list=[17, 41, 89, 185, 377], # 双卡
     is_PSPNet=False,  # 不是PSPNet都设为false
     is_swa=False,
     # check_point_file=f'../user_data/checkpoint/round2_b7_SmpUnetpp-alltrain-0317/SmpUnetpp_best.pth',
