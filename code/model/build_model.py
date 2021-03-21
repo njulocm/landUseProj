@@ -4,7 +4,7 @@ from .SegNet import SegNet
 from .PSPNet import PSPNet
 from .deeplab.deeplab import DeepLabV3P
 from .HRNet import hrnetv2 as HRNet
-from .segmentation_models import SmpUnetpp, SmpDeepLab3p
+from .segmentation_models import SmpNet, SmpDeepLab3p
 from .Unet3p import UNet3Plus_DeepSup
 from .ensemble_model import EnsembleModel
 import torch
@@ -59,7 +59,7 @@ def build_model(model_cfg):
         # hrnet = HRNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return hrnet
     elif model_cfg.type == 'SmpUnetpp':
-        smpnet = SmpUnetpp(encoder_name=model_cfg.backbone,
+        smpnet = SmpNet(encoder_name=model_cfg.backbone,
                         encoder_weights=model_cfg.encoder_weights,
                         in_channels=model_cfg.input_channel,
                         n_class=model_cfg.num_classes,

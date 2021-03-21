@@ -24,7 +24,7 @@ from segmentation_models_pytorch.encoders.timm_regnet import timm_regnet_encoder
 from segmentation_models_pytorch.encoders.timm_sknet import timm_sknet_encoders
 
 
-class SmpUnetpp(nn.Module):
+class SmpNet(nn.Module):
     def __init__(self, encoder_name, encoder_weights="imagenet", in_channels=3, n_class=10,
                  decoder_attention_type=None):
         super().__init__()
@@ -196,7 +196,7 @@ def get_encoder(name, in_channels=3, depth=5, weights=None):
     from urllib.parse import urlparse
     from urllib.request import urlopen, Request
 
-    def load_state_dict_from_url(url, model_dir="../external_data/", file_name=None, map_location=None, progress=True, ):
+    def load_state_dict_from_url(url, model_dir="../external_data/", file_name='efficientnet-b7-dcc49843.pth', map_location=None, progress=True, ):
         r"""Loads the Torch serialized object at the given URL.
 
         If downloaded file is a zip file, it will be automatically
@@ -221,8 +221,7 @@ def get_encoder(name, in_channels=3, depth=5, weights=None):
             file_name (string, optional): name for the downloaded file. Filename from `url` will be used if not set.
 
         Example:
-            >>> state_dict = torch.hub.load_state_dict_from_url('https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth')
-
+            # state_dict = torch.hub.load_state_dict_from_url('https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth')
         """
 
         # Issue warning to move data if old env is set
@@ -317,8 +316,12 @@ def get_encoder(name, in_channels=3, depth=5, weights=None):
             os.makedirs(model_dir)
 
 
-        if file_name is not None and os.path.exists(os.path.join(model_dir, file_name)):
-            filename = os.path.join(model_dir, file_name)
+        filename = os.path.join(model_dir, file_name)
+        print(os.curdir)
+        print(filename)
+        print((file_name is not None))
+        print(os.path.exists(filename))
+        if file_name is not None and os.path.exists(filename):
             return torch.load(filename, map_location=map_location)
         else:
             parts = urlparse(url)

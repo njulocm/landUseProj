@@ -1,3 +1,3 @@
 #!/bin/bash
-python main.py ./config/smp_unetpp_config.py test
+python main.py ./config/online_config.py test
 
