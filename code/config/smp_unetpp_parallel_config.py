@@ -13,7 +13,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "2, 3"
 device = 'cuda'
 # device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-info = 'SmpUnetpp-b7，scse-atte，两张卡训练，batch_size=16，全数据训练45轮'  # 可以在日志开头记录一些补充信息
+info = 'SmpUnetpp-b7，scse-atte，两张卡训练，batch_size=16，全数据训练92轮'  # 可以在日志开头记录一些补充信息
 logfile = f'../user_data/log/round2_parallel_b7_SmpUnetpp-alltrain-0318.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
@@ -78,7 +78,7 @@ model_cfg = dict(
 train_cfg = dict(
     num_workers=6,
     batch_size=16,
-    num_epochs=45,
+    num_epochs=92,
     optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),
     # lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5, last_epoch=-1), # 单卡
     lr_scheduler_cfg=dict(policy='cos', T_0=6, T_mult=2, eta_min=1e-5, last_epoch=-1),  # 双卡

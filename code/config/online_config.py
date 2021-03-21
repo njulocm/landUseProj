@@ -7,7 +7,7 @@ num_classes = 10
 input_channel = 4
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 info = 'SmpUnetpp-b7，scse-atte，全数据训练50轮'  # 可以在日志开头记录一些补充信息
-logfile = f'../user_data/log/round2_b7_SmpUnetpp-alltrain-0317.log'
+logfile = f'../user_data/log/online.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
 train_std = [0.229, 0.224, 0.225, 0.25]
@@ -65,20 +65,20 @@ model_cfg = dict(
     num_classes=num_classes,
     pretrained=True,
     device=device,
-    check_point_file=f'../user_data/checkpoint/round2_b7_SmpUnetpp-alltrain-0317/SmpUnetpp_best.pth',
+    check_point_file=f'../user_data/checkpoint/online/SmpUnetpp_best.pth',
 )
 
 train_cfg = dict(
     num_workers=6,
     batch_size=8,
-    num_epochs=50,
+    num_epochs=2,
     optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),
-    lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5, last_epoch=-1),
+    lr_scheduler_cfg=dict(policy='cos', T_0=1, T_mult=2, eta_min=1e-5, last_epoch=-1),
     # lr_scheduler_cfg=dict(policy='cos', T_0=96, T_mult=1, eta_min=1e-5, last_epoch=-1),  # swa使用
     auto_save_epoch_list=[20, 44, 92, 188, 380],  # 需要保存模型的轮数
     is_PSPNet=False,  # 不是PSPNet都设为false
     is_swa=False,
-    # check_point_file=f'../user_data/checkpoint/round2_b7_SmpUnetpp-alltrain-0317/SmpUnetpp_best.pth',
+    check_point_file=f'../user_data/checkpoint/online/SmpUnetpp_best.pth',
 )
 
 test_cfg = dict(
@@ -99,32 +99,7 @@ test_cfg = dict(
     batch_size=8,
     num_workers=train_cfg['num_workers'],
     check_point_file=[
-        # '../user_data/checkpoint/round2_b7_SmpUnetpp-alltrain-0317/SmpUnetpp_best-epoch44.pth',
-        '../user_data/checkpoint/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0224/smp_unetpp_best.pth',
-
-        # b6+swa
-        # '../user_data/checkpoint/round1/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold0-0302/smp_unetpp_best.pth',
-        # '../user_data/checkpoint/round1/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold1-0302/smp_unetpp_best.pth',
-        # '../user_data/checkpoint/round1/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold2-0302/smp_unetpp_best.pth',
-        # '../user_data/checkpoint/round1/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold3-0302/smp_unetpp_best.pth',
-        # '../user_data/checkpoint/round1/smp_unetpp_swa1e5_pretrain_b6_chnl4_rgb_argu_geometry_fold4-0302/smp_unetpp_best.pth',
-
-        # b7+atte+swa
-        # '../user_data/checkpoint/round1/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_swa1e5_fold0-0303/smp_unetpp_best.pth',
-        # '../user_data/checkpoint/round1/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_swa1e5_fold1-0303/smp_unetpp_best.pth',
-        # '../user_data/checkpoint/round1/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_swa1e5_fold2-0303/smp_unetpp_best.pth',
-        # '../user_data/checkpoint/round1/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_swa1e5_fold3-0303/smp_unetpp_best.pth',
-        # '../user_data/checkpoint/round1/smp_unetpp_atte_pretrain_b7_chnl4_rgb_argu_geometry_swa1e5_fold4-0303/smp_unetpp_best.pth',
-
-        # others
-        # '../user_data/checkpoint/round1/smp_unetpp_crf_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0221/smp_unetpp_crf_best.pth',
-        # # 0.3985
-        # '../user_data/checkpoint/round1/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0224/smp_unetpp_best.pth',
-        # # 0.3970
-        # '../user_data/checkpoint/round1/smp_unetpp_atten_pretrain_b7_chnl4-rgb_argu_discolor-alltrain-0225/smp_unetpp_best.pth',
-        # # 0.3895
-        # '../user_data/checkpoint/round1/smp_unetpp_swa1e4_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0226/smp_unetpp_best-epoch47.pth',
-        # # 0.3969
+        f'../user_data/checkpoint/online/SmpUnetpp_best.pth',
     ],
     out_dir='../prediction_result/',
 )
