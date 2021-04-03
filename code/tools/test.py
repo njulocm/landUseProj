@@ -219,6 +219,7 @@ def ensemble_evaluate(models, dataloader, ensemble_weight, device, num_classes=1
         for batch, item in tqdm(enumerate(dataloader)):
             data, label = item
             data = data.to(device)
+            print(data)
             out_avg = torch.zeros(size=(len(data), 10, 256, 256)).to(device)
             model_num = 0
             for model in models:
@@ -226,6 +227,7 @@ def ensemble_evaluate(models, dataloader, ensemble_weight, device, num_classes=1
                 temp_out = torch.nn.functional.softmax(temp_out, dim=1)  # 转成概率
                 out_avg += ensemble_weight[model_num] * temp_out
                 model_num += 1
+                print(sum(sum(torch.argmax(temp_out, dim=1)[0] + 1 == 2)) / 256 / 256)
             pred = torch.argmax(out_avg, dim=1).cpu().numpy()
             label = label.cpu().numpy()
             for i in range(len(pred)):

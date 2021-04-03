@@ -4,7 +4,7 @@ from .SegNet import SegNet
 from .PSPNet import PSPNet
 from .deeplab.deeplab import DeepLabV3P
 from .HRNet import hrnetv2 as HRNet
-from .segmentation_models import SmpNet, SmpDeepLab3p
+from .segmentation_models import SmpUnetpp, SmpDeepLab3p, SmpNet, SmpUnet
 from .Unet3p import UNet3Plus_DeepSup
 from .ensemble_model import EnsembleModel
 import torch
@@ -58,12 +58,22 @@ def build_model(model_cfg):
         hrnet = HRNet()
         # hrnet = HRNet(in_ch=model_cfg.input_channel, out_ch=model_cfg.num_classes)
         return hrnet
-    elif model_cfg.type == 'SmpUnetpp':
-        smpnet = SmpNet(encoder_name=model_cfg.backbone,
+    elif model_cfg.type == "SmpUnet":
+        model = SmpUnet(encoder_name=model_cfg.backbone,
+                        encoder_depth=model_cfg.encoder_depth,
                         encoder_weights=model_cfg.encoder_weights,
+                        decoder_use_batchnorm=model_cfg.decoder_use_batchnorm,
+                        decoder_channels=model_cfg.decoder_channels,
                         in_channels=model_cfg.input_channel,
-                        n_class=model_cfg.num_classes,
-                        decoder_attention_type=model_cfg.decoder_attention_type)
+                        classes=model_cfg.num_classes)
+        return model
+    elif model_cfg.type == 'SmpUnetpp':
+        smpnet = SmpUnetpp(encoder_name=model_cfg.backbone,
+                           encoder_weights=model_cfg.encoder_weights,
+                           in_channels=model_cfg.input_channel,
+                           n_class=model_cfg.num_classes,
+                           decoder_attention_type=model_cfg.decoder_attention_type,
+                           decoder_channels=model_cfg.decoder_channels)
         return smpnet
     elif model_cfg.type == 'SmpDeepLabV3Plus':
         model = SmpDeepLab3p(

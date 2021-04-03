@@ -65,7 +65,7 @@ class LandDataset(Dataset):
     def __getitem__(self, index):
         '''获得index序号的样本'''
         filename = self.filename_list[index] # 不含后缀
-        data = np.array(Image.open(filename + '.tif'), dtype=np.float32)
+        data = np.array(Image.open(filename + '.tif'), dtype=np.uint8) # 改，np.uint8，很关键！！！
         # data = cv2.imread(filename + '.tif', cv2.IMREAD_UNCHANGED)[..., :self.input_channel]
         # data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
         if self.mode == 'test':

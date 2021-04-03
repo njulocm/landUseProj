@@ -5,11 +5,9 @@ import torch
 random_seed = 6666
 num_classes = 10
 input_channel = 4
-device = 'cuda:3' if torch.cuda.is_available() else 'cpu'
-info = 'SmpUnetpp-b0，全数据训练，训练集采用几何变换、无色彩变换，batch_size=8，44轮的基础上swa48轮*2'  # 可以在日志开头记录一些补充信息
-logfile = f'../user_data/log/round2_b0_SmpUnetpp_swa48*2-0402.log'
-# info = 'SmpUnetpp-res18，9:1划分训练和验证集，训练集采用几何变换、无色彩变换，batch_size=8，训练93轮'  # 可以在日志开头记录一些补充信息
-# logfile = f'../user_data/log/round2_res18_SmpUnetpp_9v1-0329.log'
+device = 'cuda:1' if torch.cuda.is_available() else 'cpu'
+info = 'SmpUnet-b0，9:1划分训练和验证集，训练集采用几何变换、无色彩变换，batch_size=8，训练93轮'  # 可以在日志开头记录一些补充信息
+logfile = f'../user_data/log/round2_b0_SmpUnet_9v1-0329.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
 train_std = [0.229, 0.224, 0.225, 0.25]
@@ -30,7 +28,6 @@ train_transform = T.Compose([
 
 val_transform = T.Compose([
     T_DL.ToTensor_DL(),  # 转为tensor
-    T_DL.RandomChooseColorJitter_DL(p=prob, brightness=1, contrast=1, saturation=1, hue=0.5),
     T_DL.Normalized_DL(mean=train_mean[:input_channel],
                        std=train_std[:input_channel]),  # 归一化
 ])
@@ -59,64 +56,55 @@ dataset_cfg = dict(
 )
 
 model_cfg = dict(
-    type='SmpUnetpp',
+    type='SmpUnet',
+    # type='CheckPoint',
     backbone='efficientnet-b0',
-    # backbone='resnet18',
-    decoder_attention_type=None,
+    encoder_weights='imagenet',
+    encoder_depth=5,
+    decoder_use_batchnorm=True,
     decoder_channels=(256, 128, 64, 32, 16),
-    # decoder_attention_type='scse',
-    # encoder_weights='imagenet',
-    encoder_weights=None,
     input_channel=input_channel,
     num_classes=num_classes,
-    pretrained=True,
     device=device,
-    check_point_file=f'../user_data/checkpoint/round2_b0_SmpUnetpp_swa48*2-0402/SmpUnetpp_best.pth',
-    # check_point_file=f'../user_data/checkpoint/round2_res18_SmpUnetpp_9v1-0329/SmpUnetpp_best.pth',
+    check_point_file=f'../user_data/checkpoint/round2_b0_SmpUnet_9v1-0329/SmpUnetpp_best.pth',
 )
 
 train_cfg = dict(
     num_workers=6,
     batch_size=8,
-    num_epochs=48,
+    num_epochs=93,
     optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),  # 注意学习率调整的倍数
-    # lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5, last_epoch=-1),
-    # auto_save_epoch_list=[20, 44, 92, 188, 380],  # 需要保存模型的轮数
-    lr_scheduler_cfg=dict(policy='cos', T_0=1, T_mult=1, eta_min=1e-5, last_epoch=-1),  # swa使用
-    auto_save_epoch_list=[11, 23, 35, 47],  # swa需要保存模型的轮数
+    lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5, last_epoch=-1),
+    # lr_scheduler_cfg=dict(policy='cos', T_0=1, T_mult=1, eta_min=1e-5, last_epoch=-1),  # swa使用
+    auto_save_epoch_list=[20, 44, 92, 188, 380],  # 需要保存模型的轮数
+    # auto_save_epoch_list=[12, 24],  # swa需要保存模型的轮数
     is_PSPNet=False,  # 不是PSPNet都设为false
-    is_swa=True,
-    check_point_file=f'../user_data/checkpoint/round2_b0_SmpUnetpp_swa48_alldata-0330/SmpUnetpp_best-epoch47.pth', # swa模型读取地址
+    is_swa=False,
+    # check_point_file=f'../user_data/checkpoint/round2_b7_SmpUnetpp_alltrain_swa24-0322/SmpUnetpp_best.pth',
 )
 
 test_cfg = dict(
     test_transform=test_transform,
     processes_num=4,  # 进程数，默认为4，并行推理才会用到
-    device='cuda:2',
-    # device_available=['cuda:1','cuda:2'],
+    device='cuda:1',
     boost_type=None,  # None代表加权集成
     check_point_file=[
-        '../user_data/checkpoint/round2_b0_SmpUnetpp_swa48_alldata-0330/SmpUnetpp_best-epoch47.pth',
-        # '../user_data/checkpoint/round2_b0_depth4_256_SmpUnetpp-0330/SmpUnetpp_best.pth',
-        # '../user_data/checkpoint/round2_b0_depth4_256_SmpUnetpp_swa48-0331/SmpUnetpp_best-epoch47.pth',
-        # '../user_data/checkpoint/round2_b0_depth4_128_SmpUnetpp-0330/SmpUnetpp_best-epoch44.pth'
+        # '../user_data/checkpoint/round2_unet_color_9v1-0327/Unet_best-epoch44.pth',
 
-        # '../user_data/checkpoint/round2_b0_SmpUnet_9v1-0329/SmpUnetpp_best-epoch44.pth',
-        # '../user_data/checkpoint/round2_b0_SmpUnetpp_color_9v1-0329/SmpUnetpp_best-epoch44.pth',
-        # '../user_data/checkpoint/round2_b0_SmpUnetpp_9v1-0327/SmpUnetpp_best-epoch92.pth',
+        # '../user_data/checkpoint/round2_b6_SmpUnetpp_9v1-0327/SmpUnetpp_best-epoch44.pth',
+        # '../user_data/checkpoint/round2_b4_SmpUnetpp_9v1-0327/SmpUnetpp_best-epoch44.pth'
+        # '../user_data/checkpoint/round2_b2_SmpUnetpp_9v1-0327/SmpUnetpp_best.pth',
         # '../user_data/checkpoint/round2_b0_SmpUnetpp_9v1-0327/SmpUnetpp_best-epoch44.pth',
-        # '../user_data/checkpoint/round2_b0_SmpUnetpp_batch32_9v1-0329/SmpUnetpp_best-epoch44.pth',
-        # '../user_data/checkpoint/round2_b0_SmpUnetpp_atte_alldata-0329/SmpUnetpp_best-epoch44.pth',
-
-        # '../user_data/checkpoint/round2_res18_SmpUnetpp_9v1-0329/SmpUnetpp_best-epoch44.pth',
 
         # '../user_data/checkpoint/round2_parallel_b7_SmpUnetpp_alltrain_valArg-0324/SmpUnetpp_best.pth',
-        # '../user_data/checkpoint/round2/round2_b7_SmpUnetpp_alltrain_swa24-0322/SmpUnetpp_best.pth',
+        '../user_data/checkpoint/round2_b7_SmpUnetpp_alltrain_swa24-0322/SmpUnetpp_best.pth',
         # '../user_data/checkpoint/round2_unet_color_9v1-0326/Unet_best-epoch44.pth',
         # '../user_data/checkpoint/round2_regx320_SmpUnetpp-alltrain-0323/SmpUnetpp_best-epoch44.pth',
         # '../user_data/checkpoint/round2_parallel_b7_SmpUnetpp-alltrain-0322/SmpUnetpp_best-epoch41.pth',
         # '../user_data/checkpoint/round2_parallel_b7_SmpUnetpp_alltrain_valArg-0324/SmpUnetpp_best-epoch41.pth',
 
+        # '../user_data/checkpoint/round2_b7_SmpUnetpp-alltrain-0317/SmpUnetpp_best-epoch44.pth',
+        # '../user_data/checkpoint/round2_parallel_b7_SmpUnetpp-alltrain-0318/SmpUnetpp_best.pth',
         # '../user_data/checkpoint/round1/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0224/smp_unetpp_best.pth',
 
         # b6+swa

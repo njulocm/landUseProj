@@ -15,3 +15,4 @@
 
 python main.py ./config/smp_unetpp_config.py test_online
 
+#python main.py ./config/smp_unetpp_parallel_config.py test_online
