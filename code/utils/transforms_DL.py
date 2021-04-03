@@ -91,6 +91,10 @@ class RandomRotation_DL(torch.nn.Module):
 
 
 class RandomColorJitter_DL(torch.nn.Module):
+    '''
+    随机进行颜色抖动，亮度、对比度、饱和度和色调同时变化
+    '''
+
     def __init__(self, p=0.5, brightness=0, contrast=0, saturation=0, hue=0):
         super().__init__()
         self.p = p
@@ -109,6 +113,39 @@ class RandomColorJitter_DL(torch.nn.Module):
             # print('图像rgb变换')
             rgb = img[0:3]
             rgb = self.colorJitter(rgb)
+
+            if img.shape[0] > 3:
+                nir = img[3]
+                img = torch.cat([rgb, torch.unsqueeze(nir, 0)])
+        return img, label
+
+
+class RandomChooseColorJitter_DL(torch.nn.Module):
+    '''
+    随机进行颜色抖动，亮度、对比度、饱和度和色调只会选择其一变化
+    '''
+
+    def __init__(self, p=0.5, brightness=0, contrast=0, saturation=0, hue=0):
+        super().__init__()
+        self.p = p
+        self.brightness = brightness
+        self.contrast = contrast
+        self.saturation = saturation
+        self.hue = hue
+        self.colorJitter_list = [
+            T.ColorJitter(brightness=self.brightness),
+            T.ColorJitter(contrast=self.contrast),
+            T.ColorJitter(saturation=self.saturation),
+            T.ColorJitter(hue=self.hue),
+        ]
+
+    def forward(self, img_label):
+        img, label = img_label
+        if torch.rand(1) < self.p:
+            # print('图像rgb变换')
+            rgb = img[0:3]
+            color_opt = random.choice(self.colorJitter_list)  # 随机选择一个颜色操作
+            rgb = color_opt(rgb)
 
             if img.shape[0] > 3:
                 nir = img[3]

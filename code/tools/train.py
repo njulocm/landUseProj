@@ -203,6 +203,8 @@ def train_main(cfg):
         train_dataset, val_dataset = random_split(train_dataset,
                                                   [train_size, val_size],
                                                   generator=torch.manual_seed(cfg.random_seed))
+        # val_dataset.dataset.transform = dataset_cfg.val_transform # 要配置一下val的transform
+        print(f"按照{split_val_from_train_ratio}切分训练集...")
 
     # 构建dataloader
     def _init_fn():
@@ -334,7 +336,7 @@ def train_main(cfg):
         if epoch in auto_save_epoch_list:  # 如果再需要保存的轮次中，则保存
             model_file = model_cfg.check_point_file.split('.pth')[0] + '-epoch{}.pth'.format(epoch)
             if is_parallel:
-                torch.save(model, model_file)
+                torch.save(model.module, model_file)
             else:
                 torch.save(model, model_file)
 

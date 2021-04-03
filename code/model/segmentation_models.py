@@ -24,6 +24,49 @@ from segmentation_models_pytorch.encoders.timm_regnet import timm_regnet_encoder
 from segmentation_models_pytorch.encoders.timm_sknet import timm_sknet_encoders
 
 
+class SmpUnetpp(nn.Module):
+    def __init__(self, encoder_name, encoder_weights="imagenet", in_channels=3, n_class=10,
+                 decoder_attention_type=None, decoder_channels=(256, 128, 64, 32, 16)):
+        super().__init__()
+        self.model = UnetPlusPlus(  # UnetPlusPlus
+            encoder_name=encoder_name,  # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
+            encoder_weights=encoder_weights,  # use `imagenet` pretrained weights for encoder initialization
+            in_channels=in_channels,  # model input channels (1 for grayscale images, 3 for RGB, etc.)
+            classes=n_class,  # model output channels (number of classes in your dataset)
+            decoder_attention_type=decoder_attention_type,
+            decoder_channels=decoder_channels,
+            # aux_params={'classes': n_class}
+        )
+
+    def forward(self, x):
+        x = self.model(x)
+        return x
+
+
+class SmpUnet(nn.Module):
+    def __init__(self, encoder_name="efficientnet-b0",
+                 encoder_depth=5,
+                 encoder_weights="imagenet",
+                 decoder_use_batchnorm=True,
+                 decoder_channels=(256, 128, 64, 32, 16),
+                 in_channels=4,
+                 classes=10, ):
+        super(SmpUnet, self).__init__()
+        self.model = smp.Unet(
+            encoder_name=encoder_name,
+            encoder_depth=encoder_depth,
+            encoder_weights=encoder_weights,
+            decoder_use_batchnorm=decoder_use_batchnorm,
+            decoder_channels=decoder_channels,
+            in_channels=in_channels,
+            classes=classes,
+        )
+
+    def forward(self, x):
+        x = self.model(x)
+        return x
+
+
 class SmpNet(nn.Module):
     def __init__(self, encoder_name, encoder_weights="imagenet", in_channels=3, n_class=10,
                  decoder_attention_type=None):
@@ -149,6 +192,8 @@ class UnetPlusPlus(SegmentationModel):
     ):
         super().__init__()
 
+        encoder_depth = len(decoder_channels)
+
         self.encoder = get_encoder(
             encoder_name,
             in_channels=in_channels,
@@ -196,7 +241,10 @@ def get_encoder(name, in_channels=3, depth=5, weights=None):
     from urllib.parse import urlparse
     from urllib.request import urlopen, Request
 
-    def load_state_dict_from_url(url, model_dir="../external_data/", file_name='efficientnet-b7-dcc49843.pth', map_location=None, progress=True, ):
+    def load_state_dict_from_url(url, model_dir="../external_data_tmp/", file_name=None, map_location=None,
+                                 progress=True, ):
+        # 'efficientnet-b7-dcc49843.pth'
+
         r"""Loads the Torch serialized object at the given URL.
 
         If downloaded file is a zip file, it will be automatically
@@ -315,14 +363,8 @@ def get_encoder(name, in_channels=3, depth=5, weights=None):
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
 
-
-        filename = os.path.join(model_dir, file_name)
-        print(os.curdir)
-        print(filename)
-        print((file_name is not None))
-        print(os.path.exists(filename))
-        if file_name is not None and os.path.exists(filename):
-            return torch.load(filename, map_location=map_location)
+        if file_name is not None and os.path.exists(os.path.join(model_dir, file_name)):
+            return torch.load(os.path.join(model_dir, file_name), map_location=map_location)
         else:
             parts = urlparse(url)
             filename = os.path.basename(parts.path)
