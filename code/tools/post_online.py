@@ -24,7 +24,7 @@ def send_eval(data):
     return res, cost_time
 
 
-DIR = '/home/cm/landUseProj/tcdata/suichang_round1_test_partA_210120/'
+DIR = '../../tcdata/suichang_round1_test_partA_210120/'
 all_cost_time = 0
 for i in range(2):
     for filename in tqdm.tqdm(os.listdir(DIR)):

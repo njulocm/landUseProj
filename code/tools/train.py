@@ -176,6 +176,7 @@ def train_main(cfg):
     model_cfg = cfg.model_cfg
     is_parallel = cfg.setdefault(key='is_parallel', default=False)
     device = cfg.device
+    is_online_train = cfg.setdefault(key='is_online_train', default=False)
 
     # 配置logger
     logging.basicConfig(filename=cfg.logfile,
@@ -318,20 +319,25 @@ def train_main(cfg):
         # 在训练集上评估模型
         # val_loss, val_miou = evaluate_unet3p_model(model, val_dataset, loss_func, device,
         #                                     cfg.num_classes, train_cfg.num_workers, batch_size=train_cfg.batch_size)
-        val_loss, val_miou = evaluate_model(model, val_dataloader, loss_func, device, cfg.num_classes)
+        if not is_online_train:  # 只有在线下训练的时候才需要评估模型
+            val_loss, val_miou = evaluate_model(model, val_dataloader, loss_func, device, cfg.num_classes)
+        else:
+            val_loss = 0
+            val_miou = 0
 
         train_loss_list.append(train_loss)
         val_loss_list.append(val_loss)
 
         # 保存模型
-        if val_loss < val_loss_min:
-            val_loss_min = val_loss
-            best_epoch = epoch
-            best_miou = val_miou
-            if is_parallel:
-                torch.save(model.module, model_cfg.check_point_file)
-            else:
-                torch.save(model, model_cfg.check_point_file)
+        if not is_online_train: # 非线上训练时需要保存best model
+            if val_loss < val_loss_min:
+                val_loss_min = val_loss
+                best_epoch = epoch
+                best_miou = val_miou
+                if is_parallel:
+                    torch.save(model.module, model_cfg.check_point_file)
+                else:
+                    torch.save(model, model_cfg.check_point_file)
 
         if epoch in auto_save_epoch_list:  # 如果再需要保存的轮次中，则保存
             model_file = model_cfg.check_point_file.split('.pth')[0] + '-epoch{}.pth'.format(epoch)
