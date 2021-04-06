@@ -6,7 +6,6 @@ from torch.utils.data import random_split, DataLoader
 from utils import evaluate_model, LandDataset, fast_hist, compute_miou
 import torch.nn.functional as F
 from tqdm import tqdm
-import ttach as tta
 import numpy as np
 import cv2
 import os

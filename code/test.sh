@@ -1,3 +1,4 @@
 #!/bin/bash
-python main.py ./config/online_config.py test
 
+# 预测
+python main.py ./config/online_config.py test_online

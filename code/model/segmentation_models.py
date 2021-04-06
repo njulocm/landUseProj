@@ -241,7 +241,7 @@ def get_encoder(name, in_channels=3, depth=5, weights=None):
     from urllib.parse import urlparse
     from urllib.request import urlopen, Request
 
-    def load_state_dict_from_url(url, model_dir="../external_data_tmp/", file_name=None, map_location=None,
+    def load_state_dict_from_url(url, model_dir="../external_data/", file_name="efficientnet-b0-355c32eb.pth", map_location=None,
                                  progress=True, ):
         # 'efficientnet-b7-dcc49843.pth'
 

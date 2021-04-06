@@ -2,11 +2,12 @@ from torchvision import transforms as T
 import utils.transforms_DL as T_DL
 import torch
 
+is_online_train = True # 上线训练设成True, 不做验证集
 random_seed = 6666
 num_classes = 10
 input_channel = 4
-device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-info = 'SmpUnetpp-b7，scse-atte，全数据训练50轮'  # 可以在日志开头记录一些补充信息
+device = 'cuda:0'
+info = 'SmpUnetpp-b0，全数据训练，训练集采用几何变换、无色彩变换，batch_size=8，训练45轮'  # 可以在日志开头记录一些补充信息
 logfile = f'../user_data/log/online.log'
 
 train_mean = [0.485, 0.456, 0.406, 0.5]
@@ -22,12 +23,13 @@ train_transform = T.Compose([
     T_DL.ToTensor_DL(),  # 转为tensor
     T_DL.RandomFlip_DL(p=prob),  # 概率p水平或者垂直翻转
     T_DL.RandomRotation_DL(p=prob),  # 概率p发生随机旋转(只会90，180，270)
-    # T_DL.RandomColorJitter_DL(p=prob, brightness=1, contrast=1, saturation=1, hue=0.5),  # 概率p调整rgb
+    # T_DL.RandomChooseColorJitter_DL(p=prob, brightness=1, contrast=1, saturation=1, hue=0.5),  # 随机选择亮度、对比度、饱和度和色调进行调整
     T_DL.Normalized_DL(mean=train_mean[:input_channel], std=train_std[:input_channel]),  # 归一化
 ])
 
 val_transform = T.Compose([
     T_DL.ToTensor_DL(),  # 转为tensor
+    T_DL.RandomChooseColorJitter_DL(p=prob, brightness=1, contrast=1, saturation=1, hue=0.5),
     T_DL.Normalized_DL(mean=train_mean[:input_channel],
                        std=train_std[:input_channel]),  # 归一化
 ])
@@ -40,15 +42,11 @@ test_transform = T.Compose([
 dataset_cfg = dict(
     # dir全都改成list
     train_dir_list=['../tcdata/suichang_round1_train_210120', '../tcdata/suichang_round2_train_210316'],
-    split_val_from_train_ratio=0.1,  # val由train划分而来的比例，如果不采用划分的方式，则置为None，默认由val_dir_list构造验证集
-    # val_dir_list=['../tcdata/suichang_round1_train_210120'],
+    split_val_from_train_ratio=0,  # val由train划分而来的比例，如果不采用划分的方式，则置为None，默认由val_dir_list构造验证集
+    # val_dir_list=['../tcdata/round2_val/suichang_round1_train_210120',
+    #               '../tcdata/round2_val/suichang_round2_train_210316'],
     # test_dir_list=['../tcdata/suichang_round1_test_partA_210120'],
-    test_dir_list=['../tcdata/suichang_round1_test_partB_210120'],
     input_channel=input_channel,  # 使用几个通道作为输入
-    train_ratio=0.8,
-    val_ratio=0.2,
-    random_seed=999,
-
     # 配置transform，三个数据集的配置都要配置
     train_transform=train_transform,
     val_transform=val_transform,
@@ -57,9 +55,9 @@ dataset_cfg = dict(
 
 model_cfg = dict(
     type='SmpUnetpp',
-    # type='CheckPoint',
-    backbone='efficientnet-b7',
-    decoder_attention_type='scse',
+    backbone='efficientnet-b0',
+    decoder_attention_type=None,
+    decoder_channels=(256, 128, 64, 32, 16),
     encoder_weights='imagenet',
     input_channel=input_channel,
     num_classes=num_classes,
@@ -71,35 +69,21 @@ model_cfg = dict(
 train_cfg = dict(
     num_workers=6,
     batch_size=8,
-    num_epochs=2,
-    optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),
-    lr_scheduler_cfg=dict(policy='cos', T_0=1, T_mult=2, eta_min=1e-5, last_epoch=-1),
-    # lr_scheduler_cfg=dict(policy='cos', T_0=96, T_mult=1, eta_min=1e-5, last_epoch=-1),  # swa使用
+    num_epochs=45,
+    optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),  # 注意学习率调整的倍数
+    lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5, last_epoch=-1),
     auto_save_epoch_list=[20, 44, 92, 188, 380],  # 需要保存模型的轮数
     is_PSPNet=False,  # 不是PSPNet都设为false
     is_swa=False,
-    check_point_file=f'../user_data/checkpoint/online/SmpUnetpp_best.pth',
 )
 
 test_cfg = dict(
-    is_predict=True,  # 是否是预测分类结果
-    is_evaluate=False,  # 是否评估模型，也就是计算mIoU
     test_transform=test_transform,
-    is_crf=False,
-    tta_mode=None,  # 'd4'
-    is_ensemble=True,
-    # processes_num=4, # 进程数，默认为4，并行推理才会用到
-    device_available=['cuda:0'],  # 可用的推理设备，默认只用'cuda:0'
-    # ensemble_weight=[0.4 / 5] * 5 + [0.6 / 4] * 4,  # 模型权重，缺省为平均
-    # ensemble_weight=[0.2 / 5] * 5 + [0.2 / 5] * 5 + [0.6 / 4] * 4,  # 模型权重，缺省为平均
+    processes_num=4,  # 进程数，默认为4，并行推理才会用到
+    device='cuda:0',
     boost_type=None,  # None代表加权集成
-    # boost_ckpt_file='/home/cm/landUseProj/code/checkpoint/adaBoost/adaBoost_b6_b7_others.pkl',
-    # boost_ckpt_file='/home/cm/landUseProj/code/checkpoint/adaBoost/xgBoost_b6_b7_other_sample200_iter1000.pkl',
-    dataset='test_dataset',
-    batch_size=8,
-    num_workers=train_cfg['num_workers'],
     check_point_file=[
-        f'../user_data/checkpoint/online/SmpUnetpp_best.pth',
+        '../user_data/checkpoint/online/SmpUnetpp_swa_best-epoch47.pth',
     ],
-    out_dir='../prediction_result/',
 )
+

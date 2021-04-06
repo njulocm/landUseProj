@@ -18,6 +18,8 @@ def set_seed(seed=0):
     torch.backends.cudnn.benchmark = False
 
 if __name__ == '__main__':
+
+
     # 命令行参数
     cfg_filename = sys.argv[1]  # 配置文件名
     mode = sys.argv[2]  # 运行模式，包括train,test,online_test
