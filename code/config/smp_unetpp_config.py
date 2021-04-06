@@ -97,6 +97,8 @@ test_cfg = dict(
     device='cuda:0',
     # device_available=['cuda:1','cuda:2'],
     boost_type=None,  # None代表加权集成
+    is_trt_infer=True,
+    FLOAT=32,  # 好像没有起作用，不知道是不是命令行的原因
     check_point_file=[
         # '../user_data/checkpoint/round2_b0_SmpUnetpp_swa48*2-0402/SmpUnetpp_best-epoch47.pth',
         '../user_data/checkpoint/round2_b0_SmpUnetpp_swa48_alldata-0330/SmpUnetpp_best-epoch47.pth',
@@ -121,9 +123,8 @@ test_cfg = dict(
 
         # '../user_data/checkpoint/round1/smp_unetpp_pretrain_b7_chnl4-rgb_argu_discolor-alltrain_100ep-0224/smp_unetpp_best.pth',
     ],
-    is_trt_infer=True,
-    FLOAT=32, # 好像没有起作用，不知道是不是命令行的原因
-    trt_file='../user_data/checkpoint/round2_b0_SmpUnetpp_swa48_alldata-0330/SmpUnetpp_best-epoch47.trt',
+
+    # trt_file='../user_data/checkpoint/round2_b0_SmpUnetpp_swa48_alldata-0330/SmpUnetpp_best-epoch47.trt',
 )
 
 # test_cfg = dict(

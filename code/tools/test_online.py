@@ -101,13 +101,14 @@ def set_infer_cfg(cfg):
     bindings = None
     stream = None
 
-    if is_trt_infer:  # trt推理，只考虑单模
-        trt_file = test_cfg.trt_file
+    if is_trt_infer:  # trt推理，目前只支持单模
+        ckpt_file = test_cfg.check_point_file[0]
+        trt_file = ckpt_file.split('.pth')[0] + '.trt'
         TRT_LOGGER = trt.Logger()
         if not os.path.exists(trt_file):  # 如果没有trt模型，先用相应的torch模型转换
             print("没有trt engin，正在创建...")
-            torch2trt(ckpt_path=trt_file.split('.trt')[0] + '.pth', FLOAT=FLOAT)
-        boringbbbbbbbbbbbbbbbbbbbbbbbbb = torch.ones(4, 256, 256).cuda()  # 这玩意儿没用，只是用来把cuda初始化一下，不然会报错
+            torch2trt(ckpt_path=ckpt_file, FLOAT=FLOAT)
+        boringbbbbbbbbbbbbbbbbbbbbbbbbb = torch.ones(1).cuda()  # 这玩意儿没用，只是用来把cuda初始化一下，不然会报错
         # Build an engine
         with open(trt_file, "rb") as f, trt.Runtime(TRT_LOGGER) as runtime:
             engine = runtime.deserialize_cuda_engine(f.read())
