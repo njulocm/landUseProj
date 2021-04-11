@@ -3,4 +3,5 @@ from .Unet import U_Net, AttU_Net, NestedUNet
 from .SegNet import SegNet
 from .PSPNet import PSPNet
 from .HRNet import hrnetv2 as HRNet
-from .segmentation_models import SmpUnetpp, SmpNet, SmpUnet
+from .segmentation_models import SmpUnetpp, SmpNet, SmpUnet, SmpUnetppInterplote
+from .ensemble_model import EnsembleModel

@@ -3,18 +3,25 @@ import onnx
 from onnxsim import simplify
 import sys
 import os
+from model import EnsembleModel
 
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # 多卡训练，要设置可见的卡，device设为cuda即可，单卡直接注释掉，device正常设置
+# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
-def ckpt2onnx(ckpt_path, onnx_path):
+def ckpt2onnx(ckpt_path, onnx_path, ensemble=False):
     print("start converting ckpt to onnx...")
     model = torch.load(ckpt_path).cuda()
-    model.model.encoder.set_swish(False)
+    if isinstance(model, EnsembleModel):  # 如果是双卡模型，需要去除module
+        for sub_model in model.models:
+            sub_model.model.encoder.set_swish(False)
+    else:
+        model.model.encoder.set_swish(False)
     model.eval()
-    data = torch.rand(1, 4, 256, 256).cuda()
+    data = torch.rand(1, 256, 256, 4).cuda()
     input_names = ["input"]
     output_names = ["output"]
-    out = torch.onnx.export(model, data, onnx_path, verbose=True, opset_version=11, input_names=input_names,
-                            output_names=output_names)
+    torch.onnx.export(model, data, onnx_path, verbose=False, opset_version=11, input_names=input_names,
+                      output_names=output_names)
     print(f"successfully convert {ckpt_path} to {onnx_path}")
 
 
@@ -27,10 +34,10 @@ def onnx2onnxsim(onnx_path, onnxsim_path):
     print(f"successfully convert {onnx_path} to {onnxsim_path}")
 
 
-def torch2trt(ckpt_path, FLOAT=16):
+def torch2trt(ckpt_path, FLOAT=32, ensemble=False):
     # 1.convert ckpt to onnx
     onnx_path = ckpt_path.split('.pth')[0] + '.onnx'
-    ckpt2onnx(ckpt_path, onnx_path)
+    ckpt2onnx(ckpt_path, onnx_path, ensemble=ensemble)
     # 2. convert onnx to onnxsim
     onnxsim_path = onnx_path.split('.onnx')[0] + '-sim.onnx'
     onnx2onnxsim(onnx_path, onnxsim_path)
@@ -39,7 +46,9 @@ def torch2trt(ckpt_path, FLOAT=16):
     MAX_BATCH = 1
     trt_path = ckpt_path.split('.pth')[0] + '.trt'
     # os.system('export PATH=$PATH:/workspace/onnx-tensorrt/build')
+
     os.system(f"/workspace/onnx-tensorrt/build/onnx2trt {onnxsim_path} -o {trt_path} -b {MAX_BATCH} -d {FLOAT}")
+    # os.system(f"/home/cm/download/onnx-tensorrt/build/onnx2trt {onnxsim_path} -o {trt_path} -b {MAX_BATCH} -d {FLOAT}")
 
 
 if __name__ == '__main__':

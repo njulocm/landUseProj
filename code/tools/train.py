@@ -138,31 +138,6 @@ def train_stage2_epoch(model, model_2, optimizer, lr_scheduler, loss_func, datal
     return sum(loss_list) / len(loss_list)
 
 
-def train_PSPNet(model, optimizer, aux_weight, dataloader, device):
-    '''
-    训练PSPNet
-    :param model:
-    :param optimizer:
-    :param aux_weight: 辅助loss的权重
-    :param dataloader:
-    :param device:
-    :return: 返回该轮训练的平均loss
-    '''
-    loss_list = []
-    model.train()
-    for batch, item in tqdm(enumerate(dataloader)):
-        X, label = item
-        X = X.to(device)
-        label = label.to(device)
-        optimizer.zero_grad()
-        Y, main_loss, aux_loss = model(X, label)
-        loss = main_loss + aux_weight * aux_loss
-        loss.backward()
-        optimizer.step()
-        loss_list.append(loss.cpu().item())
-    return sum(loss_list) / len(loss_list)
-
-
 def train_main(cfg):
     '''
     训练的主函数
@@ -283,7 +258,6 @@ def train_main(cfg):
 
     # 开始训练
     auto_save_epoch_list = train_cfg.setdefault(key='auto_save_epoch_list', default=5)  # 每隔几轮保存一次模型，默认为5
-    is_PSPNet = train_cfg.setdefault(key='is_PSPNet', default=False)  # 是否是训练PSPNet，默认为False
     train_loss_list = []
     val_loss_list = []
     val_loss_min = 999999
@@ -300,13 +274,7 @@ def train_main(cfg):
         logger.info('*' * 10 + f"第{epoch}轮" + '*' * 10)
         #
         # 训练一轮
-        if is_PSPNet:  # 如果是PSPNet,用不同的训练方式
-            train_loss = train_PSPNet(model=model,
-                                      optimizer=optimizer,
-                                      aux_weight=model_cfg.aux_weight,
-                                      dataloader=train_dataloader,
-                                      device=device)
-        elif train_cfg.is_swa:  # 普通的训练方式
+        if train_cfg.is_swa:  # swa训练方式
             train_loss = train_epoch(swa_model, optimizer, lr_scheduler, loss_func, train_dataloader, epoch, device)
             moving_average(model, swa_model, 1.0 / (swa_n + 1))
             swa_n += 1
@@ -352,7 +320,7 @@ def train_main(cfg):
         m, s = divmod(run_time, 60)
         time_str = "{:02d}分{:02d}秒".format(m, s)
         print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        out_str = "第{}轮训练完成，耗时{}，\n训练集上的loss={:.6f}；\n验证集上的loss={:.4f}，mIoU={:.6f}\n最好的结果是第{}轮，mIoU={:.6f}" \
+        out_str = "第{}轮训练完成，耗时{}，\t训练集上的loss={:.6f}；\t验证集上的loss={:.4f}，mIoU={:.6f}\t最好的结果是第{}轮，mIoU={:.6f}" \
             .format(epoch, time_str, train_loss, val_loss, val_miou, best_epoch, best_miou)
         # out_str = "第{}轮训练完成，耗时{}，\n训练集上的segm_loss={:.6f},cls_loss{:.6f}\n验证集上的segm_loss={:.4f},cls_loss={:.4f},mIoU={:.6f}\n最好的结果是第{}轮，mIoU={:.6f}" \
         #     .format(epoch, time_str, train_loss, train_cls_loss, val_loss, val_cls_loss, val_miou, best_epoch,

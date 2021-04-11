@@ -60,17 +60,20 @@ model_cfg = dict(
     num_classes=num_classes,
     pretrained=True,
     device=device,
-    check_point_file=f'../user_data/checkpoint/online/SmpUnetpp_best.pth',
+    check_point_file=f'../user_data/checkpoint/online/SmpUnetpp_swa_best.pth',
 )
 
 train_cfg = dict(
     num_workers=6,
     batch_size=8,
-    num_epochs=45,
-    optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),
-    lr_scheduler_cfg=dict(policy='cos', T_0=3, T_mult=2, eta_min=1e-5, last_epoch=-1),
-    auto_save_epoch_list=[20, 44, 92, 188, 380],  # 需要保存模型的轮数
-    is_swa=False,
+    num_epochs=48,
+    optimizer_cfg=dict(type='adamw', lr=3e-4, momentum=0.9, weight_decay=5e-4),  # 注意学习率调整的倍数
+    lr_scheduler_cfg=dict(policy='cos', T_0=1, T_mult=1, eta_min=1e-5, last_epoch=-1),  # swa使用
+    auto_save_epoch_list=[23, 47],  # swa需要保存模型的轮数
+    is_PSPNet=False,  # 不是PSPNet都设为false
+    is_swa=True,
+    check_point_file=f'../user_data/checkpoint/online/SmpUnetpp_best-epoch44.pth',
+    # swa模型读取地址
 )
 
 test_cfg = dict(
@@ -80,12 +83,7 @@ test_cfg = dict(
     is_trt_infer=True,
     FLOAT=32,
     check_point_file=[
-        # 有swa
-        # '../user_data/checkpoint/online/SmpUnetpp_swa_best-epoch47.pth',
-        # '../user_data/checkpoint/round2_b0_SmpUnetpp_color_alldata-0406/SmpUnetpp_swa_best-epoch47.pth',
-
-        # 无swa
-        '../user_data/checkpoint/online/SmpUnetpp_best-epoch47.pth',
-        '../user_data/checkpoint/round2_b0_SmpUnetpp_color_alldata-0406/SmpUnetpp_best-epoch47.pth',
+        '../user_data/checkpoint/online/SmpUnetpp_swa_best-epoch47.pth',
+        '../user_data/checkpoint/round2_b0_SmpUnetpp_color_alldata-0406/SmpUnetpp_swa_best-epoch47.pth',
     ],
 )

@@ -1,5 +1,5 @@
 import sys
-from utils import Config
+from utils import Config, split_train_val
 from tools import train_main, test_main, test_online_main
 import random
 import numpy as np
@@ -29,6 +29,10 @@ if __name__ == '__main__':
     print("config filename: " + str(cfg_filename))
 
     set_seed(cfg.random_seed)
+
+    # 划分数据集
+    if mode == 'split_data':
+        split_train_val()
 
     # 训练模型
     if mode == 'train':

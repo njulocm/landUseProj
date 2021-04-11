@@ -43,6 +43,28 @@ class SmpUnetpp(nn.Module):
         return x
 
 
+class SmpUnetppInterplote(nn.Module):  # 对输入256*256的图片先插值
+    def __init__(self, interplote_size, encoder_name, encoder_weights="imagenet", in_channels=3, n_class=10,
+                 decoder_attention_type=None, decoder_channels=(256, 128, 64, 32, 16)):
+        super().__init__()
+        self.interplote_size = interplote_size
+        self.model = UnetPlusPlus(  # UnetPlusPlus
+            encoder_name=encoder_name,  # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
+            encoder_weights=encoder_weights,  # use `imagenet` pretrained weights for encoder initialization
+            in_channels=in_channels,  # model input channels (1 for grayscale images, 3 for RGB, etc.)
+            classes=n_class,  # model output channels (number of classes in your dataset)
+            decoder_attention_type=decoder_attention_type,
+            decoder_channels=decoder_channels,
+            # aux_params={'classes': n_class}
+        )
+
+    def forward(self, x):
+        x = torch.nn.functional.interpolate(x, size=self.interplote_size)
+        x = self.model(x)
+        x = torch.nn.functional.interpolate(x, size=256)
+        return x
+
+
 class SmpUnet(nn.Module):
     def __init__(self, encoder_name="efficientnet-b0",
                  encoder_depth=5,
@@ -241,7 +263,8 @@ def get_encoder(name, in_channels=3, depth=5, weights=None):
     from urllib.parse import urlparse
     from urllib.request import urlopen, Request
 
-    def load_state_dict_from_url(url, model_dir="../external_data/", file_name="efficientnet-b0-355c32eb.pth", map_location=None,
+    def load_state_dict_from_url(url, model_dir="../external_data/", file_name="efficientnet-b0-355c32eb.pth",
+                                 map_location=None,
                                  progress=True, ):
         # 'efficientnet-b7-dcc49843.pth'
 

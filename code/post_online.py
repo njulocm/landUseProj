@@ -10,6 +10,9 @@ from utils.metric import fast_hist,compute_miou
 from io import BytesIO
 from PIL import Image
 
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # 多卡训练，要设置可见的卡，device设为cuda即可，单卡直接注释掉，device正常设置
+# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+
 def loader2json(data):
     base_json = '{"a":1,"b":2,"c":3,"d":4,"e":5}'
     send_json = json.loads(base_json, encoding='utf-8')
@@ -32,7 +35,7 @@ def send_eval(data):
 DIR = '/tcdata/last1000/'
 all_cost_time = 0
 hist_sum = np.zeros((10, 10))
-for i in range(1):
+for i in range(6):
     for filename in tqdm.tqdm(os.listdir(DIR)):
         if filename.split('.')[-1] == 'png':
             continue
@@ -58,5 +61,5 @@ for i in range(1):
 
 miou = compute_miou(hist_sum)
 Fe = 0.4 * (1 - (min(max(all_cost_time, 40.0), 800.0) - 40.0) / (800.0 - 40.0))
-print(Fe)
-print(miou)
+print(f'Fe={Fe}')
+print(f'miou={miou}')
