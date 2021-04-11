@@ -1,7 +1,6 @@
 import torch
 from torch import nn
-from torch.nn.parameter import Parameter
-from torch.nn import init
+from torchvision import transforms as T
 
 
 class EnsembleModel(nn.Module):
@@ -9,14 +8,12 @@ class EnsembleModel(nn.Module):
         super().__init__()
         self.model_num = len(check_point_file_list)
         self.check_point_file_list = check_point_file_list
+        self.device = device
         # 加载模型
         self.models = self._load_model(check_point_file_list, device)
-        # 设置集成参数
-        self.weight = Parameter(torch.Tensor(self.model_num), requires_grad=True)
-        init.constant(self.weight, 1.0/self.model_num) # 初始化权重
-        # softmax层
-        self.softmax_layer=nn.Softmax(dim=1)
-
+        self.transform = T.Compose([
+            T.Normalize(mean=[0.485, 0.456, 0.406, 0.5], std=[0.229, 0.224, 0.225, 0.25]),
+        ])
 
     def _load_model(self, check_point_file_list, device):
         models = []
@@ -27,14 +24,16 @@ class EnsembleModel(nn.Module):
         return models
 
     def forward(self, x):
+        x = x.to(self.device)
+        x = x.permute(0, 3, 1, 2) / 255.0
+        x = self.transform(x)
+
         out = None
         for model in self.models:
-            temp_out = torch.unsqueeze(model(x), dim=4)
-            if out == None:
+            temp_out = torch.nn.functional.softmax(model(x), dim=1)
+            if out is None:
                 out = temp_out
             else:
-                out = torch.cat([out, temp_out], dim=4)
-        # 加权
-        out = torch.matmul(out, self.weight)
-        out = self.softmax_layer(out)
+                out += temp_out
+        out = torch.argmax(out, dim=1) + 1
         return out

@@ -19,19 +19,20 @@ from addict import Dict
 import pycuda.autoinit
 import pycuda.driver as cuda
 import tensorrt as trt
+from tensorrt.tensorrt import Logger
 from utils import torch2trt
 
-from model import build_model
+from model import build_model, EnsembleModel
 
+# from ptflops import get_model_complexity_info
 import _thread
 import threading
 # from multiprocessing import Pool  # 需要针对 IO 密集型任务和 CPU 密集型任务来选择不同的库
 from multiprocessing.dummy import Pool  # 需要针对 IO 密集型任务和 CPU 密集型任务来选择不同的库
 import time
 
-
-# from ptflops import get_model_complexity_info
-
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # 多卡训练，要设置可见的卡，device设为cuda即可，单卡直接注释掉，device正常设置
+# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 def set_seed(seed=0):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -71,13 +72,13 @@ def set_infer_cfg(cfg):
     # config
     test_cfg = cfg.test_cfg
     test_transform = test_cfg.test_transform
-    ensemble_weight = None
     processes_num = test_cfg.setdefault(key='processes_num', default=4)
     pool = Pool(processes=processes_num)  # 进程数可能需要调节
     device = test_cfg.setdefault(key='device', default='cuda:0')
     # device_available = test_cfg.setdefault(key='device_available', default=['cuda:0'])
     is_model_half = test_cfg.setdefault(key='is_model_half', default=False)
     # 获取模型集成的权重
+    ensemble_weight = None
     ensemble_weight = test_cfg.setdefault(key='ensemble_weight',
                                           default=[1.0 / len(test_cfg.check_point_file)] * len(
                                               test_cfg.check_point_file))
@@ -86,7 +87,7 @@ def set_infer_cfg(cfg):
 
     # TRT相关
     is_trt_infer = test_cfg.setdefault(key='is_trt_infer', default=False)
-    FLOAT = test_cfg.setdefault(key='FLOAT', default=16)
+    FLOAT = test_cfg.setdefault(key='FLOAT', default=32)
 
     # torch 推理相关参数初始化
     models = []
@@ -94,7 +95,6 @@ def set_infer_cfg(cfg):
     models_num = 0
 
     # trt推理相关参数初始化
-    shape_of_output = (10, 256, 256)
     context = None
     inputs = None
     outputs = None
@@ -102,14 +102,23 @@ def set_infer_cfg(cfg):
     stream = None
 
     if is_trt_infer:  # trt推理，目前只支持单模
-        ckpt_file = test_cfg.check_point_file[0]
-        trt_file = ckpt_file.split('.pth')[0] + '.trt'
-        TRT_LOGGER = trt.Logger()
-        if not os.path.exists(trt_file):  # 如果没有trt模型，先用相应的torch模型转换
-            print("没有trt engin，正在创建...")
-            torch2trt(ckpt_path=ckpt_file, FLOAT=FLOAT)
-        boringbbbbbbbbbbbbbbbbbbbbbbbbb = torch.ones(1).cuda()  # 这玩意儿没用，只是用来把cuda初始化一下，不然会报错
+        # 把ckpt转为trt
+        TRT_LOGGER = trt.Logger(min_severity=Logger.ERROR)
+        print("正在把多模型转为集成模型...")
+        print(test_cfg.check_point_file)
+        ensemble_model = EnsembleModel(check_point_file_list=test_cfg.check_point_file, device=device)
+        if not os.path.exists('../user_data/checkpoint/ensemble'):
+            os.system("mkdir ../user_data/checkpoint/ensemble")
+        ensemble_ckpt_file = '../user_data/checkpoint/ensemble/model.pth'
+        trt_file = '../user_data/checkpoint/ensemble/model.trt'
+        if not os.path.exists(trt_file):
+            torch.save(ensemble_model, ensemble_ckpt_file)
+            torch2trt(ckpt_path=ensemble_ckpt_file, FLOAT=FLOAT)
+
+        # 加载trt
+        asshole = torch.ones(1).cuda()  # 这玩意儿没用，只是用来把cuda初始化一下，不然会报错
         # Build an engine
+        print(trt_file)
         with open(trt_file, "rb") as f, trt.Runtime(TRT_LOGGER) as runtime:
             engine = runtime.deserialize_cuda_engine(f.read())
         # Create the context for this engine
@@ -122,10 +131,12 @@ def set_infer_cfg(cfg):
         for ckpt in test_cfg.check_point_file:
             # device = device_available[models_num % len(device_available)]
             model = torch.load(ckpt, map_location=device)
+            print(ckpt)
             # model_cfg = cfg.model_cfg
             # model = build_model(model_cfg).to(device)
             if isinstance(model, torch.nn.DataParallel):  # 如果是双卡模型，需要去除module
                 model = model.module
+            model.eval()
             models.append(model)
             device_list.append(device)
             models_num += 1
@@ -143,7 +154,6 @@ def set_infer_cfg(cfg):
 
          # trt相关参数
          'is_trt_infer': is_trt_infer,
-         'shape_of_output': shape_of_output,
          'context': context,
          'inputs': inputs,
          'outputs': outputs,
@@ -173,13 +183,20 @@ class OnlineInfer(inferServer):
 
         # trt相关参数
         self.is_trt_infer = infer_cfg.is_trt_infer
-        self.shape_of_output = infer_cfg.shape_of_output
         self.context = infer_cfg.context
         self.inputs = infer_cfg.inputs
         self.outputs = infer_cfg.outputs
         self.bindings = infer_cfg.bindings
         self.stream = infer_cfg.stream
         self.FLOAT = infer_cfg.FLOAT
+
+        self.init_tensorrt()
+
+    def init_tensorrt(self):
+        for i in range(1000):
+            self.inputs[0].host = np.ones((4, 256, 256), dtype=np.float32)
+            do_inference(context=self.context, bindings=self.bindings, inputs=self.inputs,
+                         outputs=self.outputs, stream=self.stream)[0].reshape((256, 256))
 
     # 数据前处理
     def pre_process(self, data):
@@ -191,24 +208,23 @@ class OnlineInfer(inferServer):
         # img = base64.b64decode(data.get_data()[-349954:-2])
         # img = base64.b64decode(bast64_data)
         img = Image.open(BytesIO(bytearray(base64.b64decode(data.get_data()[-349954:-2]))))
-        if self.FLOAT == 16:
-            return self.trans(img).half()
-        else:
-            return self.trans(img)
-
-        # return self.trans(img).to(self.device)
-        # img = np.array(img, dtype=np.float32)
-        # img = torch.Tensor(img).to(self.device)
-        # return img  # 应该是256*256*4
+        img = np.array(img, dtype=np.float32)
+        return img
 
     # 数据后处理
     def post_process(self, data):
-        if not self.is_trt_infer:
-            data = data.cpu().data.numpy()
         img_encode = np.array(cv2.imencode('.png', data)[1]).tobytes()
         bast64_data = base64.b64encode(img_encode)
         bast64_str = str(bast64_data, 'utf-8')
         return bast64_str
+
+    def predict(self,  data):
+        # data = self.test_transform(data)  # 4*256*256
+        # self.inputs[0].host = data.cpu().numpy()
+        self.inputs[0].host = data
+        ret = do_inference(context=self.context, bindings=self.bindings, inputs=self.inputs,
+                                  outputs=self.outputs, stream=self.stream)[0].reshape((256, 256))
+        return ret
 
     # def predict(self, data):
     #     '''
@@ -216,6 +232,7 @@ class OnlineInfer(inferServer):
     #     '''
     #     # data = data.permute(2, 0, 1)
     #     # data = torch.unsqueeze(data, dim=0).div(255.0)  # 1*4*256*256
+    #     data = data.to(self.device)
     #     data = torch.unsqueeze(data, dim=0)  # 1*4*256*256
     #     data = self.test_transform(data)
     #     self.data = data
@@ -227,7 +244,7 @@ class OnlineInfer(inferServer):
     #             # 起多个进程
     #             out_list = self.pool.map(self._predict, list(range(self.models_num)))
     #             ret = torch.argmax(sum(out_list), dim=1)[0] + 1  # 需要1~10
-    #     return ret
+    #     return ret.cpu().data.numpy()
     #
     # def _predict(self, model_num, dest_device='cuda:0'):
     #     # model = self.models[model_num]
@@ -237,14 +254,6 @@ class OnlineInfer(inferServer):
     #     with torch.no_grad():
     #         out = torch.nn.functional.softmax(self.models(self.data), dim=1) * weight
     #     return out
-
-    def predict(self, data):
-        data = self.test_transform(data)  # 1*4*256*256
-        self.inputs[0].host = data.cpu().numpy()
-        trt_output = do_inference(context=self.context, bindings=self.bindings, inputs=self.inputs,
-                                  outputs=self.outputs, stream=self.stream)[0].reshape(self.shape_of_output)
-        ret = np.argmax(trt_output, axis=0) + 1
-        return ret
 
 
 class HostDeviceMem(object):
@@ -293,85 +302,3 @@ def do_inference(context, bindings, inputs, outputs, stream, batch_size=1):
     stream.synchronize()
     # Return only the host outputs.
     return [out.host for out in outputs]
-
-# 模型预测：默认执行self.model(preprocess_data)，一般不用重写
-# 如需自定义，可覆盖重写
-
-# 串行推理
-# def predict_serial(self, data):
-#     '''
-#     串行推理
-#     '''
-#     # data.shape应该是256*256*4, np.array
-#
-#     data = data.permute(2, 0, 1)
-#     # data = torch.unsqueeze(data, dim=0)  # 1*4*256*256
-#     data = torch.unsqueeze(data, dim=0) / 255.0  # 1*4*256*256
-#     data = self.test_transform(data)
-#     # data = self.test_transform(data)  # 4*256*256
-#     # data = torch.unsqueeze(data, dim=0)  # 1*4*256*256
-#
-#     out_avg = torch.zeros(size=(len(data), 10, 256, 256)).to('cuda:0')
-#     model_num = 0
-#     with torch.no_grad():
-#         for model in self.models:
-#             temp_out = model(data)
-#             temp_out = torch.nn.functional.softmax(temp_out, dim=1)  # 转成概率
-#             out_avg += self.ensemble_weight[model_num] * temp_out
-#             model_num += 1
-#         ret = torch.argmax(out_avg, dim=1)[0] + 1  # 需要1~10
-#     return ret
-
-# def parrel_predict(self, data):
-#     data = data.permute(2, 0, 1)
-#     data = torch.unsqueeze(data, dim=0) / 255.0  # 1*4*256*256
-#     data = self.test_transform(data)
-#     thread_list = []
-#     model_num = 0
-#     with torch.no_grad():
-#         for model in self.models:
-#             device = self.device_list[model_num]
-#             weight = self.ensemble_weight[model_num]
-#             temp_data = data.detach().to(device)
-#             pred_thread = PredictThread(data=temp_data,
-#                                         model=model,
-#                                         weight=weight,
-#                                         dest_device='cuda:0')
-#             thread_list.append(pred_thread)
-#             pred_thread.start()
-#             model_num += 1
-#
-#         out_list = []
-#         for thread in thread_list:
-#             thread.join()  # 一定要join，不然主线程比子线程跑的快，会拿不到结果
-#             out_list.append(thread.get_result())
-#         ret = torch.argmax(sum(out_list), dim=1)[0]
-#     return ret
-#
-# def _predict(self, data, model, weight, dest_device='cuda:0'):
-#     '''
-#     单个进程的预测
-#     '''
-#     out = model(data) * weight
-#     return out.to(dest_device)
-
-# class PredictThread(threading.Thread):
-#     def __init__(self, data, model, weight, dest_device='cuda:0'):
-#         super(PredictThread, self).__init__()
-#         self.data = data
-#         self.model = model
-#         self.weight = weight
-#         self.dest_device = dest_device
-#
-#     def _predict(self):
-#         '''
-#         单个进程的预测
-#         '''
-#         out = self.model(self.data) * self.weight
-#         return out.to(self.dest_device)
-#
-#     def run(self):
-#         self.result = self._predict()
-#
-#     def get_result(self):
-#         return self.result
